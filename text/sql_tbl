@@ -1,0 +1,28 @@
+CREATE TABLE employees (
+    emp_id VARCHAR(50) PRIMARY KEY,      
+    fname VARCHAR(100),                  
+    mname VARCHAR(100),                  
+    lname VARCHAR(100),                  
+    emp_email VARCHAR(255),              
+    "full" VARCHAR(255),                 
+    department VARCHAR(150),             
+    area_of_assignment VARCHAR(150),     
+    designation VARCHAR(150),            
+    unit VARCHAR(100),                   
+    age INT,                             
+    gender VARCHAR(20),                  
+    status VARCHAR(50)                   
+);
+
+
+
+
+CREATE TABLE oplan_ceremonix (
+    id SERIAL PRIMARY KEY,           -- Auto-incrementing ID (use AUTO_INCREMENT for MySQL, IDENTITY for SQL Server)
+    name VARCHAR(255) NOT NULL,      -- Participant's name
+    designation VARCHAR(150),        -- Job title / Designation
+    with_id BOOLEAN,                 -- Replaced "with id" (TRUE/FALSE)
+    is_asean BOOLEAN,                -- Replaced "asean?" (TRUE/FALSE)
+    is_present BOOLEAN,              -- Replaced "present" (TRUE/FALSE)
+    sign VARCHAR(100)                -- Signature status (e.g., 'Signed', 'Pending') or file path
+);

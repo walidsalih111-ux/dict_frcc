@@ -1,0 +1,53 @@
+.bg-primary { background-color: #1c84c6 !important; color: #ffffff !important; }
+.text-primary, .text-navy { color: #1c84c6 !important; }
+
+/* Buttons */
+.btn-primary {
+    background-color: #1c84c6;
+    border-color: #1c84c6;
+    color: #ffffff;
+}
+
+.btn-primary:hover, .btn-primary:focus, .btn-primary:active, 
+.btn-primary.active, .open .dropdown-toggle.btn-primary, 
+.btn-primary:active:focus, .btn-primary:active:hover, 
+.btn-primary.active:hover, .btn-primary.active:focus {
+    background-color: #1a7bb9;
+    border-color: #1a7bb9;
+    color: #ffffff;
+}
+
+/* Badges and Labels */
+.badge-primary { background-color: #1c84c6; }
+.label-primary { background-color: #1c84c6; color: #FFFFFF; }
+
+/* Sidebar Navigation */
+.nav > li.active {
+    border-left: 4px solid #1a7bb9;
+    background: #293846;
+}
+
+/* Top Navigation Link Hover */
+.navbar-default .nav > li > a:hover, 
+.navbar-default .nav > li > a:focus {
+    background-color: #1a7bb9;
+    color: white;
+}
+
+/* Progress Bars */
+.progress-bar {
+    background-color: #1c84c6;
+}
+
+/* Loading Spinners */
+.sk-spinner-double-bounce .sk-child,
+.sk-spinner-wave .sk-rect,
+.sk-spinner-wandering-cubes .sk-cube,
+.sk-spinner-chasing-dots .sk-child,
+.sk-spinner-three-bounce .sk-child {
+    background-color: #1c84c6;
+}
+
+/* Icon / Branding */
+.spin-icon { background: #1c84c6 !important; }
+.branding { background-color: #1c84c6; }
