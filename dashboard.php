@@ -1,7 +1,17 @@
 <?php
+session_start();
+
+// Check if the user is logged in and has an 'admin' role
+if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
+    // Redirect to the login page if not authenticated
+    header("Location: index.php");
+    exit();
+}
+
 include 'connect.php';
 
 if (!$pdo) {
+// ... rest of your code remains exactly the same
     die('Database connection failed: ' . ($db_error ?? 'Unknown error'));
 }
 

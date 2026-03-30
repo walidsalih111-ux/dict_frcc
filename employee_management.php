@@ -1,5 +1,12 @@
 <?php
-include 'connect.php'; 
+session_start();
+
+if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
+    header("Location: index.php");
+    exit();
+}
+
+include 'connect.php';
 
 // Fetch unique values for the filters from the database
 $dept_query = $conn->query("SELECT DISTINCT department FROM employees WHERE department IS NOT NULL AND department != '' ORDER BY department");
