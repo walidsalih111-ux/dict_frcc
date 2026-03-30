@@ -1,95 +1,158 @@
 <?php
 session_start();
+// Set timezone to Manila to ensure correct 8:00 AM detection
+date_default_timezone_set('Asia/Manila');
 
-// If the user is already logged in, redirect them to their respective pages automatically
-if (isset($_SESSION['user_id']) && isset($_SESSION['role'])) {
-    if ($_SESSION['role'] === 'admin') {
-        header('Location: dashboard.php');
-        exit;
+include 'connect.php';
+if (!$pdo) {
+    die('Database connection failed: ' . ($db_error ?? 'Unknown error'));
+}
+
+// Initialize variables
+$employees = [];
+$db_error = null;
+$message = null;
+$messageType = null;
+$is_monday = (date('l') === 'Monday'); // Check if today is Monday
+
+// Auto-add 'status' column to the database if it doesn't exist yet
+$hasStatusColumn = false;
+try {
+    $colCheck = $pdo->query("SHOW COLUMNS FROM attendance_record LIKE 'status'");
+    if ($colCheck->rowCount() == 0) {
+        $pdo->exec("ALTER TABLE attendance_record ADD COLUMN status ENUM('On Time', 'Late') DEFAULT 'On Time' AFTER is_asean");
+        $hasStatusColumn = true;
     } else {
-        header('Location: my_attendance.php');
-        exit;
+        $hasStatusColumn = true;
+    }
+} catch (PDOException $e) {
+    $hasStatusColumn = false; // Fallback if user doesn't have ALTER privileges
+}
+
+// Auto-add 'photo_path' column to the database for the image capture
+$hasPhotoColumn = false;
+try {
+    $colCheckPhoto = $pdo->query("SHOW COLUMNS FROM attendance_record LIKE 'photo_path'");
+    if ($colCheckPhoto->rowCount() == 0) {
+        $pdo->exec("ALTER TABLE attendance_record ADD COLUMN photo_path VARCHAR(255) NULL AFTER status");
+        $hasPhotoColumn = true;
+    } else {
+        $hasPhotoColumn = true;
+    }
+} catch (PDOException $e) {
+    $hasPhotoColumn = false;
+}
+    
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+    $action = $_POST['action'];
+
+    if ($action === 'mark_attendance' && isset($_POST['emp_id'])) {
+        
+        // Backend safeguard: Block submission if it's not Monday
+        if (!$is_monday) {
+            $message = "Action denied. Attendance can only be recorded on Mondays.";
+            $messageType = "error";
+        } else {
+            // 1. Gather Basic Variables
+            $emp_id = $_POST['emp_id'];
+            $with_id = $_POST['with_id'] ?? 'No';
+            $is_asean = $_POST['is_asean'] ?? 'No';
+            $photo_data = $_POST['photo_data'] ?? null;
+            $photo_path = null;
+
+            // 2. Logic to determine if On Time or Late
+            $currentTime = date('H:i:s');
+            $status = ($currentTime > '08:00:00') ? 'Late' : 'On Time';
+
+            // 3. NEW COMPLIANCE LOGIC
+            $is_compliant = 0; // Default to 0 (non-compliant)
+            // Check if ALL conditions are met: On Time, Has ID, Proper Attire
+            if ($status === 'On Time' && $with_id === 'Yes' && $is_asean === 'Yes') {
+                $is_compliant = 1; // 1 means compliant
+            }
+
+            // 4. Handle Image Upload
+            if (!empty($photo_data)) {
+                $image_parts = explode(";base64,", $photo_data);
+                if (count($image_parts) == 2) {
+                    $image_type_aux = explode("image/", $image_parts[0]);
+                    $image_type = isset($image_type_aux[1]) ? $image_type_aux[1] : 'jpeg';
+                    $image_base64 = base64_decode($image_parts[1]);
+                    
+                    // Define upload directory
+                    $upload_dir = 'uploads/attendance/' . $emp_id . '/';
+                    if (!is_dir($upload_dir)) {
+                        mkdir($upload_dir, 0777, true);
+                    }
+                    
+                    // Set filename and save file
+                    $current_datetime = date('Y-m-d_H-i-s');
+                    $file_name = $emp_id . '_' . $current_datetime . '.' . $image_type;
+                    $photo_path = $upload_dir . $file_name;
+                    file_put_contents($photo_path, $image_base64);
+                }
+            }
+
+            // 5. Fetch employee data to get their designation
+            $empStmt = $pdo->prepare("SELECT full, designation FROM employees WHERE emp_id = ?");
+            $empStmt->execute([$emp_id]);
+            $empData = $empStmt->fetch(PDO::FETCH_ASSOC);
+
+            if ($empData) {
+                $designation = $empData['designation'] ?? 'Employee';
+
+                try {
+                    // 6. Execute ONE SINGLE INSERT Statement
+                    $sql = "INSERT INTO attendance_record 
+                            (emp_id, designation, with_id, is_asean, status, photo_path, is_compliant, time_recorded) 
+                            VALUES (:emp_id, :designation, :with_id, :is_asean, :status, :photo_path, :is_compliant, NOW())";
+
+                    $stmt = $pdo->prepare($sql);
+                    
+                    $execResult = $stmt->execute([
+                        ':emp_id' => $emp_id,
+                        ':designation' => $designation,
+                        ':with_id' => $with_id,
+                        ':is_asean' => $is_asean,
+                        ':status' => $status,
+                        ':photo_path' => $photo_path, // Included correctly here
+                        ':is_compliant' => $is_compliant
+                    ]);
+
+                    if ($execResult) {
+                        if ($status === 'Late') {
+                            $message = "Attendance recorded for " . htmlspecialchars($empData['full']) . ". Note: You are marked as LATE.";
+                            $messageType = "warning";
+                        } else {
+                            $message = "Attendance successfully recorded for " . htmlspecialchars($empData['full']) . "!";
+                            $messageType = "success";
+                        }
+                    }
+                } catch (PDOException $e) {
+                    $message = "Database Error: " . $e->getMessage();
+                    $messageType = "error";
+                }
+            } else {
+                $message = "Invalid employee selected.";
+                $messageType = "error";
+            }
+        } // End of monday check
     }
 }
 
-include 'connect.php';
-
-$error = '';
-$success = '';
-
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    
-    // ==========================================
-    // LOGIN LOGIC
-    // ==========================================
-    $username = isset($_POST['username']) ? trim($_POST['username']) : '';
-    $password = isset($_POST['password']) ? $_POST['password'] : '';
-    $attempted_role = isset($_POST['login_role']) ? $_POST['login_role'] : '';
-
-    if ($username === '' || $password === '') {
-        $error = 'Please enter username and password.';
-    } else {
-        // Used a JOIN to get the 'full' name from the employees table and alias it as 'fullname'
-        $sql = "SELECT u.id, u.username, u.password, e.full as fullname, u.role 
-                FROM user_account u 
-                LEFT JOIN employees e ON u.emp_id = e.emp_id 
-                WHERE u.username = ? LIMIT 1";
-        
-        if ($stmt = mysqli_prepare($conn, $sql)) {
-            mysqli_stmt_bind_param($stmt, 's', $username);
-            mysqli_stmt_execute($stmt);
-            
-            // Bind the variables to the result
-            mysqli_stmt_bind_result($stmt, $id, $db_username, $db_password, $fullname, $role);
-            
-            if (mysqli_stmt_fetch($stmt)) {
-                $verified = false;
-                
-                // Check password securely or with plain text fallback
-                if (is_string($db_password) && password_verify($password, $db_password)) {
-                    $verified = true;
-                } elseif ($password === $db_password) {
-                    $verified = true;
-                }
-
-                if ($verified) {
-                    // Make sure the user is logging in through the right portal tab
-                    if ($role !== $attempted_role) {
-                        $error = 'Access denied: Please use the correct login portal for your role.';
-                    } else {
-                        session_regenerate_id(true);
-                        $_SESSION['user_id'] = $id;
-                        $_SESSION['username'] = $db_username;
-                        $_SESSION['fullname'] = $fullname;
-                        $_SESSION['role'] = $role; 
-                        
-                        // Redirect based on user role
-                        if ($role === 'admin') {
-                            header('Location: dashboard.php');
-                        } else {
-                            header('Location: my_attendance.php');
-                        }
-                        exit;
-                    }
-                } else {
-                    $error = 'Invalid username or password.';
-                }
-            } else {
-                $error = 'Invalid username or password.';
-            }
-            mysqli_stmt_close($stmt);
-        } else {
-            $error = 'Database error: ' . mysqli_error($conn); 
-        }
-    }
+try {
+    $stmt = $pdo->query("SELECT emp_id, full, designation FROM employees WHERE full IS NOT NULL AND full != '' ORDER BY full ASC");
+    $employees = $stmt->fetchAll(PDO::FETCH_ASSOC);
+} catch (PDOException $e) {
+    $db_error = "Database query failed: " . $e->getMessage();
 }
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>DICT Monday Flag Raising - Login</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DICT Monday Flag Raising - Attendance</title>
 
     <!-- Bootstrap 5 -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -97,12 +160,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
     <!-- Google Fonts: Open Sans for Inspinia Typography -->
     <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <!-- Select2 & SweetAlert -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <style>
-        /* Inspinia Theme Core Variables & Styles */
+        /* Inspinia Theme Core Variables & Styles matched from index.php */
         body {
-            background-color: #f3f3f4; /* Fallback color */
-            /* Added a linear-gradient overlay with 60% opacity black to darken the background image */
+            background-color: #f3f3f4;
             background-image: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url('img/bg/philippine_bg.png');
             background-size: cover;
             background-position: center;
@@ -110,26 +177,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             background-attachment: fixed;
             color: #676a6c;
             font-family: 'Open Sans', helvetica, arial, sans-serif;
-            height: 100vh;
+            min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
             margin: 0;
+            padding: 20px 0;
         }
 
         .loginscreen.middle-box {
-            width: 360px;
+            width: 420px;
             max-width: 90%;
             z-index: 100;
             text-align: center;
-            /* Added a subtle background and padding to ensure text is readable over the image */
             background-color: rgba(255, 255, 255, 0.85);
             padding: 30px 20px;
             border-radius: 8px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            animation: fadeIn 0.6s ease-out;
         }
 
-        /* Adjusted for the new image logo */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-15px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
         .logo-container {
             margin-bottom: 15px;
         }
@@ -138,7 +210,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             font-weight: 600;
             margin-top: 10px;
             font-size: 24px;
-            color: #333; /* Darker text for better contrast */
+            color: #333;
         }
 
         .ibox-content {
@@ -146,7 +218,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             color: inherit;
             padding: 25px 20px 20px 20px;
             border-color: #e7eaec;
-            border-image: none;
             border-style: solid solid none;
             border-width: 1px 0;
             border-radius: 4px;
@@ -167,6 +238,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             border-color: #1ab394;
             box-shadow: none;
         }
+        .form-control:disabled {
+            background-color: #f8f9fa;
+            cursor: not-allowed;
+        }
 
         /* Buttons */
         .btn {
@@ -176,7 +251,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             padding: 8px 12px;
         }
         
-        .btn-primary { /* Inspinia Teal */
+        .btn-primary { 
             background-color: #1ab394;
             border-color: #1ab394;
             color: #FFFFFF;
@@ -184,17 +259,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         .btn-primary:hover, .btn-primary:focus, .btn-primary:active {
             background-color: #18a689 !important;
             border-color: #18a689 !important;
-            color: #FFFFFF !important;
-        }
-
-        .btn-info { /* Inspinia Blue for Admin */
-            background-color: #1c84c6;
-            border-color: #1c84c6;
-            color: #FFFFFF;
-        }
-        .btn-info:hover, .btn-info:focus, .btn-info:active {
-            background-color: #1a7bb9 !important;
-            border-color: #1a7bb9 !important;
             color: #FFFFFF !important;
         }
 
@@ -209,36 +273,107 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             background: #f8f9fa;
         }
 
-        /* Custom Tabs */
-        .nav-tabs {
-            border-bottom: 1px solid #e7eaec;
+        /* Live Clock styling */
+        .clock-panel {
+            text-align: center;
             margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px dashed #e7eaec;
         }
-        .nav-tabs .nav-link {
-            color: #a7b1c2;
-            border: none;
+        #live-clock {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #1ab394;
+            margin-bottom: 0;
+            line-height: 1.2;
+        }
+        #live-date {
+            font-size: 0.85rem;
             font-weight: 600;
-            padding: 8px 15px;
-            font-size: 15px;
-        }
-        .nav-tabs .nav-link:hover {
-            color: #676a6c;
-            border-color: transparent;
-        }
-        .nav-tabs .nav-link.active {
-            color: #676a6c;
-            background-color: transparent;
-            border-bottom: 2px solid #1ab394;
+            color: #a7b1c2;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
-        /* Utilities */
-        .toggle-password {
-            cursor: pointer;
-            color: #999c9e;
-            z-index: 10;
+        /* Toggle Switches adapted for Inspinia */
+        .toggle-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid #f3f3f4;
         }
-        .toggle-password:hover {
-            color: #1ab394;
+        .toggle-row:last-child {
+            border-bottom: none;
+            padding-bottom: 0;
+        }
+        .toggle-row label {
+            font-weight: 600;
+            color: #676a6c;
+            margin-bottom: 0;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .form-check-input {
+            width: 3em !important;
+            height: 1.5em !important;
+            cursor: pointer;
+            border-color: #e5e6e7;
+        }
+        .form-check-input:checked {
+            background-color: #1ab394;
+            border-color: #1ab394;
+        }
+        .form-check-input:focus {
+            box-shadow: 0 0 0 0.25rem rgba(26, 179, 148, 0.25);
+            border-color: #1ab394;
+        }
+        .form-check-input:disabled {
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+
+        /* Select2 Inspinia Integration */
+        .select2-container--default .select2-selection--single {
+            border: 1px solid #e5e6e7 !important;
+            border-radius: 2px !important;
+            height: 36px !important;
+            display: flex;
+            align-items: center;
+        }
+        .select2-container--default.select2-container--open .select2-selection--single,
+        .select2-container--default .select2-selection--single:focus {
+            border-color: #1ab394 !important;
+            outline: none;
+        }
+        .select2-container--default .select2-selection--single .select2-selection__rendered {
+            color: #676a6c !important;
+            padding-left: 12px !important;
+            font-size: 14px;
+        }
+        .select2-container--default .select2-selection--single .select2-selection__arrow {
+            height: 34px !important;
+            right: 6px !important;
+        }
+        .select2-dropdown {
+            border-color: #e5e6e7 !important;
+            border-radius: 2px !important;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1) !important;
+        }
+        .select2-container--default .select2-results__option--highlighted.select2-results__option--selectable {
+            background-color: #1ab394 !important;
+        }
+
+        /* Camera overlay style */
+        .camera-overlay {
+            position: absolute;
+            top: 10%;
+            bottom: 10%;
+            left: 15%;
+            right: 15%;
+            border: 2px dashed rgba(255, 255, 255, 0.7);
+            border-radius: 20px;
+            pointer-events: none;
         }
         .alert {
             border-radius: 3px;
@@ -251,7 +386,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 <div class="middle-box loginscreen">
     
-    <!-- Updated Logo Section -->
+    <!-- Logo Section -->
     <div class="logo-container">
         <img src="img/logo/DICT.png" alt="DICT Logo" class="img-fluid" style="max-height: 130px; object-fit: contain;">
     </div>
@@ -259,106 +394,319 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <h3>DICT Monday Flag Raising</h3>
     <p class="text-muted">Attendance Checker</p>
 
-    <!-- Display Errors & Success Messages -->
-    <?php if (!empty($error)): ?>
+    <!-- Display Database Errors -->
+    <?php if ($db_error): ?>
         <div class="alert alert-danger text-center" role="alert">
-            <i class="bi bi-exclamation-triangle-fill"></i> <?php echo htmlspecialchars($error); ?>
-        </div>
-    <?php endif; ?>
-    
-    <?php if (!empty($success)): ?>
-        <div class="alert alert-success text-center" role="alert">
-            <i class="bi bi-check-circle-fill"></i> <?php echo htmlspecialchars($success); ?>
+            <i class="bi bi-exclamation-triangle-fill"></i> <?php echo htmlspecialchars($db_error); ?>
         </div>
     <?php endif; ?>
 
     <div class="ibox-content mb-3">
         
-        <!-- Role Selection Tabs -->
-        <ul class="nav nav-tabs nav-justified" id="loginTabs" role="tablist">
-            <li class="nav-item" role="presentation">
-                <button class="nav-link active" id="user-tab" data-bs-toggle="tab" data-bs-target="#user-form" type="button" role="tab">User</button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="admin-tab" data-bs-toggle="tab" data-bs-target="#admin-form" type="button" role="tab">Admin</button>
-            </li>
-        </ul>
-
-        <div class="tab-content" id="loginTabsContent">
-            
-            <!-- ================= USER LOGIN FORM ================= -->
-            <div class="tab-pane fade show active" id="user-form" role="tabpanel">
-                <form method="POST" action="">
-                    <input type="hidden" name="login_role" value="user">
-
-                    <div class="mb-3">
-                        <input type="text" class="form-control" id="user_username" name="username" placeholder="Username" required>
-                    </div>
-
-                    <div class="mb-4 position-relative">
-                        <input type="password" class="form-control pe-5" id="user_password" name="password" placeholder="Password" required>
-                        <span class="position-absolute top-50 end-0 translate-middle-y me-3 toggle-password" onclick="togglePassword('user_password', this)">
-                            <i class="bi bi-eye"></i>
-                        </span>
-                    </div>
-
-                    <button type="submit" class="btn btn-primary w-100 d-block">
-                        Login
-                    </button>
-                </form>
-            </div>
-
-            <!-- ================= ADMIN LOGIN FORM ================= -->
-            <div class="tab-pane fade" id="admin-form" role="tabpanel">
-                <form method="POST" action="">
-                    <input type="hidden" name="login_role" value="admin">
-
-                    <div class="mb-3">
-                        <input type="text" class="form-control" id="admin_username" name="username" placeholder="Admin Username" required>
-                    </div>
-
-                    <div class="mb-4 position-relative">
-                        <input type="password" class="form-control pe-5" id="admin_password" name="password" placeholder="Admin Password" required>
-                        <span class="position-absolute top-50 end-0 translate-middle-y me-3 toggle-password" onclick="togglePassword('admin_password', this)">
-                            <i class="bi bi-eye"></i>
-                        </span>
-                    </div>
-
-                    <button type="submit" class="btn btn-info w-100 d-block">
-                        Admin Login
-                    </button>
-                </form>
-            </div>
-
+        <!-- Live Clock -->
+        <div class="clock-panel">
+            <div id="live-clock">00:00:00 AM</div>
+            <div id="live-date">Loading Date...</div>
         </div>
+
+        <form id="attendance-form" method="POST" action="index.php">
+            <input type="hidden" name="action" value="mark_attendance">
+            <!-- Hidden field for the captured photo -->
+            <input type="hidden" name="photo_data" id="photo_data" value="">
+            
+            <div class="mb-3">
+                <label class="form-label text-muted fw-bold small mb-1">Employee Name</label>
+                <select id="emp_id" name="emp_id" class="form-control" required <?php echo !$is_monday ? 'disabled' : ''; ?>>
+                    <option value=""></option> 
+                    <?php foreach ($employees as $emp): ?>
+                        <option value="<?php echo htmlspecialchars($emp['emp_id']); ?>">
+                            <?php echo htmlspecialchars($emp['full']); ?> 
+                            <?php if(!empty($emp['designation'])) echo ' (' . htmlspecialchars($emp['designation']) . ')'; ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+
+            <div class="mb-4">
+                <div class="toggle-row">
+                    <label class="form-check-label" for="with_id">
+                        <i class="bi bi-person-vcard me-1 text-muted"></i> Wearing your ID?
+                    </label>
+                    <div class="form-check form-switch m-0 p-0">
+                        <input class="form-check-input m-0 float-end" type="checkbox" role="switch" name="with_id" id="with_id" value="Yes" <?php echo !$is_monday ? 'disabled' : ''; ?>>
+                    </div>
+                </div>
+                <div class="toggle-row">
+                    <label class="form-check-label" for="is_asean">
+                        <i class="bi bi-suit-tie me-1 text-muted"></i> Wearing Formal Attire?
+                    </label>
+                    <div class="form-check form-switch m-0 p-0">
+                        <input class="form-check-input m-0 float-end" type="checkbox" role="switch" name="is_asean" id="is_asean" value="Yes" <?php echo !$is_monday ? 'disabled' : ''; ?>>
+                    </div>
+                </div>
+            </div>
+
+            <?php if ($is_monday): ?>
+                <button type="button" onclick="confirmSignIn()" class="btn btn-primary w-100 d-block">
+                    <i class="bi bi-box-arrow-in-right me-1"></i> Sign In
+                </button>
+            <?php else: ?>
+                <div class="alert alert-warning text-center p-2 mb-3" style="font-size: 13px; background-color: #fcf8e3; border-color: #faebcc; color: #8a6d3b;">
+                    <i class="bi bi-info-circle-fill"></i> Attendance is only available on Mondays.
+                </div>
+                <button type="button" class="btn w-100 d-block" disabled style="background-color: #e5e6e7; border-color: #e5e6e7; color: #888; cursor: not-allowed;">
+                    <i class="bi bi-lock-fill me-1"></i> Sign In Locked
+                </button>
+            <?php endif; ?>
+        </form>
     </div>
 
-    <!-- Switch Button -->
-    <a href="attendance_checker.php" class="btn btn-white w-100">
-        <i class="bi bi-arrow-repeat me-1"></i> Switch to Weekly Attendance
+    <!-- Navigation Switch Button -->
+    <a href="login.php" class="btn btn-white w-100">
+        <i class="bi bi-arrow-left me-1"></i> Back to Login Page
     </a>
 
 </div>
 
-<!-- Bootstrap JS needed for Tabs -->
+<!-- Bootstrap JS -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
-// Toggle Password Visibility
-function togglePassword(inputId, iconElement) {
-    const pass = document.getElementById(inputId);
-    const icon = iconElement.querySelector("i");
-
-    if (pass.type === "password") {
-        pass.type = "text";
-        icon.classList.remove("bi-eye");
-        icon.classList.add("bi-eye-slash");
-    } else {
-        pass.type = "password";
-        icon.classList.remove("bi-eye-slash");
-        icon.classList.add("bi-eye");
+    // Live Clock Logic
+    function updateClock() {
+        const now = new Date();
+        const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true });
+        const dateStr = now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+        document.getElementById('live-clock').textContent = timeStr;
+        document.getElementById('live-date').textContent = dateStr;
     }
-}
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    $(document).ready(function() {
+        $('#emp_id').select2({
+            placeholder: "Search your name...",
+            allowClear: true,
+            width: '100%',
+            disabled: <?php echo $is_monday ? 'false' : 'true'; ?>
+        });
+    });
+
+    let cameraStream = null;
+
+    // Open Camera Capture Function
+    function capturePhoto() {
+        Swal.fire({
+            title: 'Capture Half-Body Photo',
+            html: `
+                <div style="font-size: 0.9rem; color: #676a6c; margin-bottom: 15px;">
+                    Please align your face and upper body within the frame. Make Sure you're wearing your ID and Proper Attire.
+                </div>
+                <div id="camera-container" style="position: relative; width: 100%; max-width: 400px; margin: 0 auto; overflow: hidden; border-radius: 4px; background: #000; min-height: 250px; display: flex; align-items: center; justify-content: center;">
+                    <video id="camera-stream" width="100%" autoplay playsinline style="transform: scaleX(-1); display: block;"></video>
+                    <div class="camera-overlay" id="camera-overlay"></div>
+                </div>
+                <canvas id="camera-canvas" style="display: none;"></canvas>
+            `,
+            showCancelButton: true,
+            confirmButtonText: '<i class="bi bi-camera-fill me-1"></i> Capture & Submit',
+            cancelButtonText: 'Cancel',
+            confirmButtonColor: '#1ab394',
+            allowOutsideClick: false,
+            didOpen: () => {
+                const video = document.getElementById('camera-stream');
+                const container = document.getElementById('camera-container');
+                const overlay = document.getElementById('camera-overlay');
+                
+                // Disable confirm button initially while camera loads
+                Swal.disableButtons();
+                
+                // Check if browser supports mediaDevices
+                if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                    navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } })
+                        .then(function(stream) {
+                            cameraStream = stream;
+                            video.srcObject = stream;
+                            
+                            // Enable the capture button once the video metadata is loaded
+                            video.onloadedmetadata = () => {
+                                Swal.enableButtons();
+                            };
+                        })
+                        .catch(function(err) {
+                            console.error("Camera access error: ", err);
+                            video.style.display = 'none';
+                            if (overlay) overlay.style.display = 'none';
+                            
+                            let errorTitle = "Camera Access Denied";
+                            let errorMsg = "Could not access the camera. Please check your device permissions.";
+                            
+                            if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+                                errorMsg = "Please allow camera access in your browser site settings (click the lock icon in your URL bar) and try again.";
+                            } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
+                                errorTitle = "No Camera Found";
+                                errorMsg = "We could not find a camera connected to your device.";
+                            } else if (!window.isSecureContext) {
+                                errorTitle = "Insecure Connection";
+                                errorMsg = "Camera access requires a secure connection (HTTPS) or localhost. Please check your URL.";
+                            }
+
+                            // Replace the video feed with a clear error message
+                            container.style.background = '#fdf0f0';
+                            container.style.border = '1px solid #ed5565';
+                            container.innerHTML = `
+                                <div style="padding: 20px; color: #ed5565; text-align: center;">
+                                    <i class="bi bi-camera-video-off-fill" style="font-size: 2.5rem; display: block; margin-bottom: 10px;"></i>
+                                    <strong>${errorTitle}</strong>
+                                    <p style="font-size: 0.85rem; margin-top: 5px; color: #676a6c; margin-bottom: 0;">${errorMsg}</p>
+                                </div>
+                            `;
+                            // Keep the submit button disabled so they cannot submit a blank form
+                        });
+                } else {
+                    // Browser does not support getUserMedia API at all
+                    video.style.display = 'none';
+                    if (overlay) overlay.style.display = 'none';
+                    container.style.background = '#fdf0f0';
+                    container.style.border = '1px solid #ed5565';
+                    container.innerHTML = `
+                        <div style="padding: 20px; color: #ed5565; text-align: center;">
+                            <i class="bi bi-exclamation-triangle-fill" style="font-size: 2.5rem; display: block; margin-bottom: 10px;"></i>
+                            <strong>Browser Unsupported</strong>
+                            <p style="font-size: 0.85rem; margin-top: 5px; color: #676a6c; margin-bottom: 0;">Your browser does not support camera access, or you are accessing the site via HTTP instead of HTTPS.</p>
+                        </div>
+                    `;
+                }
+            },
+            willClose: () => {
+                // Stop camera stream when modal is closed
+                if (cameraStream) {
+                    cameraStream.getTracks().forEach(track => track.stop());
+                }
+            },
+            preConfirm: () => {
+                const video = document.getElementById('camera-stream');
+                const canvas = document.getElementById('camera-canvas');
+                
+                if (!cameraStream || !video || !video.videoWidth) {
+                    Swal.showValidationMessage('Camera is not ready yet or access was denied.');
+                    return false;
+                }
+                
+                // Set canvas size to match video feed
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                const context = canvas.getContext('2d');
+                
+                // Mirror the canvas image to match the video preview
+                context.translate(canvas.width, 0);
+                context.scale(-1, 1);
+                
+                // Draw the video frame onto the canvas
+                context.drawImage(video, 0, 0, canvas.width, canvas.height);
+                
+                // Convert canvas to Base64 image data string
+                const photoData = canvas.toDataURL('image/jpeg', 0.85); // 0.85 quality
+                document.getElementById('photo_data').value = photoData;
+                
+                return true;
+            }
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // Submit the form containing both attendance data and the photo
+                Swal.fire({
+                    title: 'Saving...',
+                    text: 'Uploading attendance record.',
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+                $('#attendance-form').submit();
+            }
+        });
+    }
+
+    function confirmSignIn() {
+        const emp = $('#emp_id').val();
+        if (!emp) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Required',
+                text: 'Please select your name first.',
+                confirmButtonColor: '#1ab394'
+            });
+            return;
+        }
+
+        // Check if it's currently past 8:00 AM
+        const now = new Date();
+        const isLate = (now.getHours() > 8) || (now.getHours() === 8 && (now.getMinutes() > 0 || now.getSeconds() > 0));
+        
+        let warningHtml = '';
+        if (isLate) {
+            warningHtml = `
+                <div style="background-color: #fcf8e3; color: #8a6d3b; padding: 12px; border-radius: 3px; margin-bottom: 15px; font-size: 13px; border: 1px solid #faebcc; text-align: left;">
+                    <strong><i class="bi bi-clock-history"></i> Notice:</strong> It is past 8:00 AM. Your attendance will be marked as <strong>LATE</strong>.
+                </div>
+            `;
+        }
+
+        let cameraNoticeHtml = `
+            <div style="background-color: #eaf6f4; color: #15967c; padding: 12px; border-radius: 3px; margin-bottom: 15px; font-size: 13px; border: 1px solid #cdefe8; text-align: left;">
+                <strong><i class="bi bi-camera-video-fill"></i> Camera Notice:</strong> Proceeding will open your device's camera to capture a photo for attendance verification.
+            </div>
+        `;
+
+        Swal.fire({
+            title: 'Sign In Agreement',
+            html: `
+                ${warningHtml}
+                ${cameraNoticeHtml}
+                <div style="font-size: 14px; color: #676a6c; margin-bottom: 20px;">
+                    I confirm that the information provided is accurate and I agree to the office rules.
+                </div>
+                <div class="form-check d-flex justify-content-center align-items-center gap-2">
+                    <input class="form-check-input mt-0 shadow-none" type="checkbox" id="agree-checkbox" style="cursor: pointer; width: 1.2rem !important; height: 1.2rem !important; border-color: #1ab394;">
+                    <label class="form-check-label text-dark" for="agree-checkbox" style="cursor: pointer; user-select: none; font-size: 14px;">
+                        I agree to this condition
+                    </label>
+                </div>
+            `,
+            icon: isLate ? 'warning' : 'info',
+            showCancelButton: true,
+            confirmButtonColor: '#1ab394', // Match Inspinia Primary Color
+            cancelButtonColor: '#ffffff',
+            cancelButtonText: '<span style="color:#676a6c; font-weight: 600;">Cancel</span>',
+            confirmButtonText: 'Proceed to Capture',
+            customClass: {
+                cancelButton: 'border' // Add border to cancel button to look like btn-white
+            },
+            preConfirm: () => {
+                const isAgreed = document.getElementById('agree-checkbox').checked;
+                if (!isAgreed) {
+                    Swal.showValidationMessage('You must check "I agree to this condition" to proceed.');
+                    return false; 
+                }
+                return true;
+            }
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // Instead of immediately submitting, trigger the camera
+                capturePhoto();
+            }
+        });
+    }
+
+    // Success/Error Messages from PHP
+    <?php if ($message): ?>
+        Swal.fire({
+            icon: '<?php echo $messageType; ?>',
+            title: '<?php echo $messageType === 'success' ? 'Recorded!' : ($messageType === 'warning' ? 'Recorded (Late)' : 'Error'); ?>',
+            text: '<?php echo addslashes($message); ?>',
+            confirmButtonColor: '#1ab394'
+        });
+    <?php endif; ?>
 </script>
 
 </body>

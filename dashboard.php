@@ -22,7 +22,11 @@ try {
     $stmt = $pdo->query("SELECT status, COUNT(emp_id) as count FROM employees GROUP BY status");
     $statusData = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    // 5. Get Compliant & Non-Compliant for This Week (Monday Only)
+    // 5. Get Employees by Area of Assignment
+    $stmt = $pdo->query("SELECT area_of_assignment, COUNT(emp_id) as count FROM employees GROUP BY area_of_assignment");
+    $areaData = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    // 6. Get Compliant & Non-Compliant for This Week (Monday Only)
     // Find the date of the most recent Monday (or today if today is Monday)
     $mondayDate = date('Y-m-d', strtotime(date('l') === 'Monday' ? 'today' : 'last Monday'));
 
@@ -42,6 +46,7 @@ try {
     $departmentsData = [];
     $genderData = [];
     $statusData = [];
+    $areaData = [];
     $compliantCount = 0;
     $nonCompliantCount = 0;
     $dbError = $e->getMessage();
@@ -56,6 +61,9 @@ $genderCounts = json_encode(array_column($genderData, 'count'));
 
 $statusLabels = json_encode(array_column($statusData, 'status'));
 $statusCounts = json_encode(array_column($statusData, 'count'));
+
+$areaLabels = json_encode(array_column($areaData, 'area_of_assignment'));
+$areaCounts = json_encode(array_column($areaData, 'count'));
 ?>
 <!doctype html>
 <html lang="en">
@@ -244,8 +252,22 @@ $statusCounts = json_encode(array_column($statusData, 'count'));
           </div>
 
           <div class="row">
-            <!-- Centered Employment Status Pie Chart after removing Area of Assignment -->
-            <div class="col-lg-6 offset-lg-3">
+            <!-- Area of Assignment Chart -->
+            <div class="col-lg-6">
+                <div class="ibox ">
+                    <div class="ibox-title">
+                        <h5>Area of Assignment</h5>
+                    </div>
+                    <div class="ibox-content">
+                        <div style="position: relative; height: 300px; width: 100%;">
+                            <canvas id="areaBarChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+          
+            <!-- Employment Status Pie Chart -->
+            <div class="col-lg-6">
                 <div class="ibox ">
                     <div class="ibox-title">
                         <h5>Employment Status</h5>
@@ -331,7 +353,35 @@ $statusCounts = json_encode(array_column($statusData, 'count'));
         var ctxDoughnut = document.getElementById("genderDoughnutChart").getContext("2d");
         new Chart(ctxDoughnut, { type: "doughnut", data: doughnutData, options: doughnutOptions });
 
-        // 3. Status Pie Chart Configuration (Mixed Theme Colors)
+        // 3. Area of Assignment Bar Chart
+        var areaLabels = <?php echo $areaLabels ?: '[]'; ?>;
+        var areaCounts = <?php echo $areaCounts ?: '[]'; ?>;
+        
+        var areaBarData = {
+            labels: areaLabels.length > 0 ? areaLabels : ["No Data"],
+            datasets: [{
+                label: "Number of Employees",
+                backgroundColor: "rgba(78, 115, 223, 0.6)", // Match #4e73df (blue theme)
+                borderColor: "#4e73df",
+                borderWidth: 2,
+                maxBarThickness: 60,
+                data: areaCounts.length > 0 ? areaCounts : [0]
+            }]
+        };
+
+        var areaBarOptions = {
+            responsive: true,
+            maintainAspectRatio: false,
+            legend: { display: false },
+            scales: {
+                yAxes: [{ ticks: { beginAtZero: true } }]
+            }
+        };
+
+        var ctxArea = document.getElementById("areaBarChart").getContext("2d");
+        new Chart(ctxArea, { type: "bar", data: areaBarData, options: areaBarOptions });
+
+        // 4. Status Pie Chart Configuration (Mixed Theme Colors)
         var statusLabels = <?php echo $statusLabels ?: '[]'; ?>;
         var statusCounts = <?php echo $statusCounts ?: '[]'; ?>;
 
@@ -350,7 +400,7 @@ $statusCounts = json_encode(array_column($statusData, 'count'));
         var ctxPie = document.getElementById("statusPieChart").getContext("2d");
         new Chart(ctxPie, { type: "pie", data: pieData, options: pieOptions });
         
-        // 4. SweetAlert Logout Confirmation
+        // 5. SweetAlert Logout Confirmation
         $('#logout-btn').on('click', function(e) {
             e.preventDefault(); 
             Swal.fire({
@@ -371,4 +421,4 @@ $statusCounts = json_encode(array_column($statusData, 'count'));
       });
     </script>
   </body>
-</html>
+</html> 
