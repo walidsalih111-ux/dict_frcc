@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Mar 30, 2026 at 01:36 AM
+-- Generation Time: Mar 31, 2026 at 10:50 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -51,7 +51,8 @@ INSERT INTO `attendance_record` (`attendance_id`, `emp_id`, `designation`, `with
 (85, 117, 'Employee', 'Yes', 'Yes', 'Late', NULL, 0, '2026-03-30 02:09:32'),
 (86, 117, 'ITO I', 'Yes', 'Yes', 'Late', 'uploads/attendance/117/117_2026-03-30_10-09-32.jpeg', 0, '2026-03-30 02:09:32'),
 (87, 114, 'Project Development', 'Yes', 'Yes', 'Late', 'uploads/attendance/114/114_2026-03-30_10-25-57.jpeg', 0, '2026-03-30 02:25:57'),
-(88, 112, 'Planning Assistant', 'Yes', 'Yes', 'On Time', 'uploads/attendance/112/112_2026-03-30_07-28-38.jpeg', 1, '2026-03-29 23:28:38');
+(88, 112, 'Planning Assistant', 'Yes', 'Yes', 'On Time', 'uploads/attendance/112/112_2026-03-30_07-28-38.jpeg', 1, '2026-03-29 23:28:38'),
+(89, 113, 'AO III', 'Yes', 'Yes', 'Late', 'uploads/attendance/113/113_2026-03-30_14-50-05.jpeg', 0, '2026-03-30 06:50:05');
 
 -- --------------------------------------------------------
 
@@ -146,7 +147,7 @@ ALTER TABLE `user_account`
 -- AUTO_INCREMENT for table `attendance_record`
 --
 ALTER TABLE `attendance_record`
-  MODIFY `attendance_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=89;
+  MODIFY `attendance_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=90;
 
 --
 -- AUTO_INCREMENT for table `employees`
