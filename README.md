@@ -16,4 +16,4 @@ Our goal is to support government operations by leveraging technology to enhance
 
 git add .
 git commit -m "Initial commit"
-git push origin main
+git push -u origin main

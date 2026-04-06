@@ -16,6 +16,7 @@ include 'connect.php';
 
 $error = '';
 $success = '';
+$attempted_role = 'user'; // Default to user
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     
@@ -24,7 +25,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // ==========================================
     $username = isset($_POST['username']) ? trim($_POST['username']) : '';
     $password = isset($_POST['password']) ? $_POST['password'] : '';
-    $attempted_role = isset($_POST['login_role']) ? $_POST['login_role'] : '';
+    $attempted_role = isset($_POST['login_role']) ? $_POST['login_role'] : 'user';
 
     if ($username === '' || $password === '') {
         $error = 'Please enter username and password.';
@@ -277,17 +278,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <!-- Role Selection Tabs -->
         <ul class="nav nav-tabs nav-justified" id="loginTabs" role="tablist">
             <li class="nav-item" role="presentation">
-                <button class="nav-link active" id="user-tab" data-bs-toggle="tab" data-bs-target="#user-form" type="button" role="tab">User</button>
+                <button class="nav-link <?php echo $attempted_role !== 'admin' ? 'active' : ''; ?>" id="user-tab" data-bs-toggle="tab" data-bs-target="#user-form" type="button" role="tab">User</button>
             </li>
             <li class="nav-item" role="presentation">
-                <button class="nav-link" id="admin-tab" data-bs-toggle="tab" data-bs-target="#admin-form" type="button" role="tab">Admin</button>
+                <button class="nav-link <?php echo $attempted_role === 'admin' ? 'active' : ''; ?>" id="admin-tab" data-bs-toggle="tab" data-bs-target="#admin-form" type="button" role="tab">Admin</button>
             </li>
         </ul>
 
         <div class="tab-content" id="loginTabsContent">
             
             <!-- ================= USER LOGIN FORM ================= -->
-            <div class="tab-pane fade show active" id="user-form" role="tabpanel">
+            <div class="tab-pane fade <?php echo $attempted_role !== 'admin' ? 'show active' : ''; ?>" id="user-form" role="tabpanel">
                 <form method="POST" action="">
                     <input type="hidden" name="login_role" value="user">
 
@@ -309,7 +310,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </div>
 
             <!-- ================= ADMIN LOGIN FORM ================= -->
-            <div class="tab-pane fade" id="admin-form" role="tabpanel">
+            <div class="tab-pane fade <?php echo $attempted_role === 'admin' ? 'show active' : ''; ?>" id="admin-form" role="tabpanel">
                 <form method="POST" action="">
                     <input type="hidden" name="login_role" value="admin">
 

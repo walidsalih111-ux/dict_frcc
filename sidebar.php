@@ -20,8 +20,10 @@ if (isset($_SESSION['fullname']) && !empty($_SESSION['fullname'])) {
 <style>
   .locked-sidebar {
     position: fixed !important;
+    top: 0;      /* Anchors the sidebar to the top of the viewport */
+    left: 0;     /* Anchors the sidebar to the left of the viewport */
     height: 100vh;
-    overflow-y: auto;
+    overflow-y: auto; /* Allows scrolling INSIDE the sidebar if the menu gets too long */
     z-index: 2000;
   }
 
@@ -78,7 +80,6 @@ if (isset($_SESSION['fullname']) && !empty($_SESSION['fullname'])) {
         <a href="employee_management.php"><i class="fa fa-users"></i> <span class="nav-label">Employee Management</span></a>
       </li>
 
-      <!-- About Us Button -->
       <li class="nav-about">
         <a href="#" data-toggle="modal" data-target="#aboutUsModal">
           <i class="fa fa-info-circle"></i> <span class="nav-label">About Us</span>
@@ -88,5 +89,4 @@ if (isset($_SESSION['fullname']) && !empty($_SESSION['fullname'])) {
   </div>
 </nav>
 
-<!-- Automatically include the About Us Modal at the end of the sidebar -->
 <?php include 'about_us.php'; ?>

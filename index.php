@@ -489,6 +489,10 @@ try {
             allowClear: true,
             width: '100%',
             disabled: <?php echo $is_monday ? 'false' : 'true'; ?>
+        }).on('change', function() {
+            // When employee is changed, uncheck both toggles
+            $('#with_id').prop('checked', false);
+            $('#is_asean').prop('checked', false);
         });
     });
 
