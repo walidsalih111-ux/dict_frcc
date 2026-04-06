@@ -244,15 +244,19 @@ function confirmSignIn() {
         return;
     }
 
-    // Check if it's currently past 8:00 AM
-    const now = new Date();
-    const isLate = (now.getHours() > 8) || (now.getHours() === 8 && (now.getMinutes() > 0 || now.getSeconds() > 0));
+                // Check if it's currently past 8:30AM
+                const now = new Date();
+            const currentHour = now.getHours();
+            const currentMinute = now.getMinutes();
+
+            
+            const isLate = (currentHour > 8) || (currentHour === 8 && currentMinute >= 30);
     
     let warningHtml = '';
     if (isLate) {
         warningHtml = `
             <div style="background-color: #fcf8e3; color: #8a6d3b; padding: 12px; border-radius: 3px; margin-bottom: 15px; font-size: 13px; border: 1px solid #faebcc; text-align: left;">
-                <strong><i class="bi bi-clock-history"></i> Notice:</strong> It is past 8:00 AM. Your attendance will be marked as <strong>LATE</strong>.
+                <strong><i class="bi bi-clock-history"></i> Notice:</strong> It is past 8:30 AM. Your attendance will be marked as <strong>LATE</strong>.
             </div>
         `;
     }

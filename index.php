@@ -1,6 +1,6 @@
 <?php
 session_start();
-// Set timezone to Manila to ensure correct 8:00 AM detection
+// Set timezone to Manila to ensure correct 8:30 AM detection
 date_default_timezone_set('Asia/Manila');
 
 include 'connect.php';
@@ -62,7 +62,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
             // 2. Logic to determine if On Time or Late
             $currentTime = date('H:i:s');
-            $status = ($currentTime > '08:00:00') ? 'Late' : 'On Time';
+            $status = ($currentTime > '08:30:00') ? 'Late' : 'On Time';
 
             // 3. NEW COMPLIANCE LOGIC
             $is_compliant = 0; // Default to 0 (non-compliant)
@@ -486,8 +486,7 @@ try {
 <!-- Bootstrap JS -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
-<script src="js/attendance.js"></script>
-
+<script src="js/attendance.js?v=<?php echo time(); ?>"></script>
 <script>
     // Keep the PHP dynamic alerts inside index.php
     <?php if ($message): ?>

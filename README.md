@@ -19,9 +19,9 @@ git commit -m "Initial commit"
 git push -u origin main
 
 
-User Feedback
-Auto capture in 5 seconds and recapture button. And Preview modal and widen the camera modal
-
 
 April 06, 2026
+UX Update
+Auto capture in 5 seconds and recapture button. And Preview modal and widen the camera modal
+
 - Bug Fixes (index.php and login.php)
