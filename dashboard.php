@@ -16,6 +16,52 @@ if (!$pdo) {
     die('Database connection failed: ' . ($db_error ?? 'Unknown error'));
 }
 
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'fetch_compliance_list') {
+    $status = isset($_POST['status']) && $_POST['status'] === '1' ? 1 : 0;
+    $mondayDate = date('Y-m-d', strtotime(date('l') === 'Monday' ? 'today' : 'last Monday'));
+    
+    if (!$pdo) {
+        echo "<tr><td colspan='5' class='text-center text-danger'>Database connection failed.</td></tr>";
+        exit;
+    }
+    
+    try {
+        $stmt = $pdo->prepare("SELECT 
+                e.emp_id, 
+                e.full, 
+                MAX(a.time_recorded) AS time_recorded,
+                SUBSTRING_INDEX(GROUP_CONCAT(a.status ORDER BY a.status DESC SEPARATOR ','), ',', 1) AS status
+            FROM attendance_record a
+            JOIN employees e ON a.emp_id = e.emp_id
+            WHERE DATE(a.time_recorded) = :mondayDate
+              AND a.is_compliant = :status
+            GROUP BY e.emp_id, e.full
+            ORDER BY time_recorded DESC");
+        $stmt->execute(['status' => $status, 'mondayDate' => $mondayDate]);
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        if ($rows) {
+            foreach ($rows as $row) {
+                $fullName = htmlspecialchars(ucwords($row['full'] ?? 'N/A'));
+                $statusText = htmlspecialchars($row['status'] ?? 'N/A');
+                $formattedTime = !empty($row['time_recorded']) ? htmlspecialchars(date('M d, Y - h:i A', strtotime($row['time_recorded']))) : 'N/A';
+
+                echo "<tr>";
+                echo "<td>" . htmlspecialchars($row['emp_id']) . "</td>";
+                echo "<td>" . $fullName . "</td>";
+                echo "<td>" . $formattedTime . "</td>";
+                echo "<td class='text-center'>" . $statusText . "</td>";
+                echo "</tr>";
+            }
+        } else {
+            echo "<tr><td colspan='4' class='text-center text-muted py-4'><i class='fa fa-folder-open-o fa-2x mb-2 d-block'></i><em>No employees found for this category this Monday.</em></td></tr>";
+        }
+    } catch (PDOException $e) {
+        echo "<tr><td colspan='5' class='text-center text-danger'>Error: " . htmlspecialchars($e->getMessage()) . "</td></tr>";
+    }
+    exit;
+}
+
 try {
     // 1. Get Total Employees
     $stmt = $pdo->query("SELECT COUNT(emp_id) FROM employees");
@@ -152,6 +198,16 @@ $areaCounts = json_encode(array_column($areaData, 'count'));
             box-shadow: 0 2px 10px rgba(0,0,0,0.05) !important;
             border-bottom: none !important;
         }
+
+        .ibox.clickable {
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .ibox.clickable:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 15px 30px rgba(0,0,0,0.15);
+        }
     </style>
   </head>
 
@@ -206,7 +262,7 @@ $areaCounts = json_encode(array_column($areaData, 'count'));
             </div>
             
             <div class="col-lg-3">
-                <div class="ibox ">
+                <div class="ibox clickable" id="compliantCard" data-status="1">
                     <div class="ibox-title">
                         <span class="badge bg-primary float-end">This Monday</span>
                         <h5>Compliant</h5>
@@ -220,7 +276,7 @@ $areaCounts = json_encode(array_column($areaData, 'count'));
             </div>
 
             <div class="col-lg-3">
-                <div class="ibox ">
+                <div class="ibox clickable" id="nonCompliantCard" data-status="0">
                     <div class="ibox-title">
                         <span class="badge bg-danger float-end">This Monday</span>
                         <h5>Non-Compliant</h5>
@@ -298,6 +354,44 @@ $areaCounts = json_encode(array_column($areaData, 'count'));
       
       <div id="right-sidebar">
         </div>
+    </div>
+
+    <div class="modal fade" id="complianceModal" tabindex="-1" role="dialog" aria-labelledby="complianceModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-xl" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="complianceModalLabel"></h5>
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <div class="modal-body">
+            <div class="table-responsive">
+              <table class="table table-bordered table-striped mb-0">
+                <thead>
+                  <tr>
+                    <th>Employee ID</th>
+                    <th>Full Name</th>
+                    <th>Most Recent Time</th>
+                    <th class="text-center">Status</th>
+                  </tr>
+                </thead>
+                <tbody id="compliance_list_body">
+                  <tr>
+                    <td colspan="4" class="text-center text-muted py-4">
+                      <i class="fa fa-info-circle fa-2x mb-2 d-block"></i>
+                      <em>Click the Compliant or Non-Compliant card to see the employee list.</em>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+          </div>
+        </div>
+      </div>
     </div>
 
     <script src="js/jquery-3.1.1.min.js"></script>
@@ -411,7 +505,34 @@ $areaCounts = json_encode(array_column($areaData, 'count'));
         var ctxPie = document.getElementById("statusPieChart").getContext("2d");
         new Chart(ctxPie, { type: "pie", data: pieData, options: pieOptions });
         
-        // 5. SweetAlert Logout Confirmation
+        // 5. Clickable Compliance Cards
+        $('.ibox.clickable').on('click', function () {
+            var status = $(this).data('status');
+            var isCompliant = status === 1 || status === '1';
+            var modalTitle = isCompliant ? 'Compliant Attendees This Monday' : 'Non-Compliant Attendees This Monday';
+            var loadingRow = '<tr><td colspan="5" class="text-center text-muted py-4"><i class="fa fa-spinner fa-spin fa-2x mb-2 d-block"></i><em>Loading list...</em></td></tr>';
+
+            $('#complianceModalLabel').text(modalTitle);
+            $('#compliance_list_body').html(loadingRow);
+            $('#complianceModal').modal('show');
+
+            $.ajax({
+                url: 'dashboard.php',
+                method: 'POST',
+                data: {
+                    action: 'fetch_compliance_list',
+                    status: status
+                },
+                success: function(response) {
+                    $('#compliance_list_body').html(response);
+                },
+                error: function() {
+                    $('#compliance_list_body').html('<tr><td colspan="5" class="text-center text-danger py-4"><i class="fa fa-exclamation-triangle fa-2x mb-2 d-block"></i><em>Unable to load employees. Please refresh and try again.</em></td></tr>');
+                }
+            });
+        });
+
+        // 6. SweetAlert Logout Confirmation
         $('#logout-btn').on('click', function(e) {
             e.preventDefault(); 
             Swal.fire({
