@@ -372,13 +372,6 @@ $attendance_records = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                                     <strong><?php echo date('M d, Y', strtotime($record['time_recorded'])); ?></strong><br>
                                                     <div class="mt-1 d-flex align-items-center">
                                                         <small class="text-muted"><i class="bi bi-clock me-1"></i><?php echo date('h:i A', strtotime($record['time_recorded'])); ?></small>
-                                                        
-                                                        <!-- Late / On Time Check -->
-                                                        <?php if ($isLate): ?>
-                                                            <span class="label label-warning ms-2">Late</span>
-                                                        <?php else: ?>
-                                                            <span class="label label-primary ms-2">On Time</span>
-                                                        <?php endif; ?>
                                                     </div>
                                                 </td>
                                                 <td><?php echo htmlspecialchars($record['designation'] ?? 'N/A'); ?></td>
@@ -627,4 +620,4 @@ $attendance_records = $stmt->fetchAll(PDO::FETCH_ASSOC);
         });
     </script>
 </body>
-</html>
+</html> 

@@ -27,3 +27,5 @@ April 06, 2026 – Update
 - Fixed bugs
 - Recent attendance records will be added to the attendance checker page
 - Removed the login user; only the admin login page will remain
+
+--png jpg hpij pdf

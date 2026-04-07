@@ -1,6 +1,6 @@
 <?php
 session_start();
-// Set timezone to Manila to ensure correct 8:30 AM detection
+// Set timezone to Manila
 date_default_timezone_set('Asia/Manila');
 
 include 'connect.php';
@@ -15,7 +15,7 @@ $message = null;
 $messageType = null;
 $is_monday = (date('l') === 'Monday'); // Check if today is Monday
 
-// Auto-add 'status' column to the database if it doesn't exist yet
+// Auto-add 'status' column to the database if it doesn't exist yet (Kept for database backward compatibility)
 try {
     $colCheck = $pdo->query("SHOW COLUMNS FROM attendance_record LIKE 'status'");
     if ($colCheck->rowCount() == 0) {
@@ -57,18 +57,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $photo_data = $_POST['photo_data'] ?? null;
             $photo_path = null;
 
-            // 2. Logic to determine if On Time or Late
-            $currentTime = date('H:i:s');
-            $status = ($currentTime > '08:30:00') ? 'Late' : 'On Time';
-
-            // 3. NEW COMPLIANCE LOGIC
+            // 2. NEW COMPLIANCE LOGIC
             $is_compliant = 0; // Default to 0 (non-compliant)
-            // Check if ALL conditions are met: On Time, Has ID, Proper Attire
-            if ($status === 'On Time' && $with_id === 'Yes' && $is_asean === 'Yes') {
+            // Check if conditions are met: Has ID, Proper Attire
+            if ($with_id === 'Yes' && $is_asean === 'Yes') {
                 $is_compliant = 1; // 1 means compliant
             }
 
-            // 4. Handle Image Upload
+            // 3. Handle Image Upload
             if (!empty($photo_data)) {
                 $image_parts = explode(";base64,", $photo_data);
                 if (count($image_parts) == 2) {
@@ -90,7 +86,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 }
             }
 
-            // 5. Fetch employee data to get their designation
+            // 4. Fetch employee data to get their designation
             $empStmt = $pdo->prepare("SELECT full, designation FROM employees WHERE emp_id = ?");
             $empStmt->execute([$emp_id]);
             $empData = $empStmt->fetch(PDO::FETCH_ASSOC);
@@ -99,10 +95,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 $designation = $empData['designation'] ?? 'Employee';
 
                 try {
-                    // 6. Execute ONE SINGLE INSERT Statement
+                    // 5. Execute ONE SINGLE INSERT Statement
                     $sql = "INSERT INTO attendance_record 
-                            (emp_id, designation, with_id, is_asean, status, photo_path, is_compliant, time_recorded) 
-                            VALUES (:emp_id, :designation, :with_id, :is_asean, :status, :photo_path, :is_compliant, NOW())";
+                            (emp_id, designation, with_id, is_asean, photo_path, is_compliant, time_recorded) 
+                            VALUES (:emp_id, :designation, :with_id, :is_asean, :photo_path, :is_compliant, NOW())";
 
                     $stmt = $pdo->prepare($sql);
                     
@@ -111,19 +107,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                         ':designation' => $designation,
                         ':with_id' => $with_id,
                         ':is_asean' => $is_asean,
-                        ':status' => $status,
                         ':photo_path' => $photo_path,
                         ':is_compliant' => $is_compliant
                     ]);
 
                     if ($execResult) {
-                        if ($status === 'Late') {
-                            $message = "Attendance recorded for " . htmlspecialchars($empData['full']) . ". Note: You are marked as LATE.";
-                            $messageType = "warning";
-                        } else {
-                            $message = "Attendance successfully recorded for " . htmlspecialchars($empData['full']) . "!";
-                            $messageType = "success";
-                        }
+                        $message = "Attendance successfully recorded for " . htmlspecialchars($empData['full']) . "!";
+                        $messageType = "success";
                     }
                 } catch (PDOException $e) {
                     $message = "Database Error: " . $e->getMessage();
@@ -159,7 +149,7 @@ $totalRecords = $countStmt->fetchColumn();
 $totalPages = ceil($totalRecords / $limit);
 
 // Fetch the attendance records across all employees
-$tableSql = "SELECT a.designation, a.with_id, a.is_asean, a.status, a.is_compliant, a.time_recorded, a.photo_path, 
+$tableSql = "SELECT a.designation, a.with_id, a.is_asean, a.is_compliant, a.time_recorded, a.photo_path, 
                e.full, e.area_of_assignment, e.department, e.unit 
         FROM attendance_record a
         JOIN employees e ON a.emp_id = e.emp_id
@@ -478,7 +468,6 @@ $attendance_records = $tableStmt->fetchAll(PDO::FETCH_ASSOC);
                                         
                                         // Use db fields directly
                                         $isCompliant = ($record['is_compliant'] == 1);
-                                        $isLate = ($record['status'] === 'Late');
 
                                         // Format Date & Time for passing to photo modal
                                         $formattedDateTime = date('M d, Y - h:i A', strtotime($record['time_recorded']));
@@ -488,11 +477,6 @@ $attendance_records = $tableStmt->fetchAll(PDO::FETCH_ASSOC);
                                             <strong><?php echo date('M d, Y', strtotime($record['time_recorded'])); ?></strong><br>
                                             <div class="mt-1 d-flex align-items-center">
                                                 <small class="text-muted"><i class="bi bi-clock me-1"></i><?php echo date('h:i A', strtotime($record['time_recorded'])); ?></small>
-                                                <?php if ($isLate): ?>
-                                                    <span class="label label-warning ms-2">Late</span>
-                                                <?php else: ?>
-                                                    <span class="label label-primary ms-2">On Time</span>
-                                                <?php endif; ?>
                                             </div>
                                         </td>
                                         
@@ -631,7 +615,7 @@ $attendance_records = $tableStmt->fetchAll(PDO::FETCH_ASSOC);
     <?php if ($message): ?>
         Swal.fire({
             icon: '<?php echo $messageType; ?>',
-            title: '<?php echo $messageType === 'success' ? 'Recorded!' : ($messageType === 'warning' ? 'Recorded (Late)' : 'Error'); ?>',
+            title: '<?php echo $messageType === 'success' ? 'Recorded!' : 'Error'; ?>',
             text: '<?php echo addslashes($message); ?>',
             confirmButtonColor: '#1ab394'
         });
