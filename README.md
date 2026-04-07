@@ -11,17 +11,19 @@ Our goal is to support government operations by leveraging technology to enhance
 * Mohammad Salih S. Musa
 
 ### Universidad de Zamboanga (UZ) Interns 2026 - Computer Engineering
-- MISS | DICT
+- MISS | DICT IX BASULTA
 
+
+
+Github Push command: 
 
 git add .
 git commit -m "Initial commit"
 git push -u origin main
 
 
-
-April 06, 2026
-UX Update
-Auto capture in 5 seconds and recapture button. And Preview modal and widen the camera modal
-
-- Bug Fixes (index.php and login.php)
+April 06, 2026 – Update
+- Added auto-capture in 5 seconds, recapture button, preview modal, and widened camera modal
+- Fixed bugs
+- Recent attendance records will be added to the attendance checker page
+- Removed the login user; only the admin login page will remain
