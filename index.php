@@ -452,11 +452,8 @@ $attendance_records = $tableStmt->fetchAll(PDO::FETCH_ASSOC);
                             <tr>
                                 <th>Date & Time</th>
                                 <th>Employee Name</th>
-                                <th>Department</th>
-                                <th class="text-center">With ID</th>
-                                <th class="text-center">Proper Attire</th>
-                                <th class="text-center">Compliant</th>
-                                <th class="text-center">Photo</th>
+                                <!-- <th>Department</th> -->
+                                <th class="text-center">Compliant</th>   
                             </tr>
                         </thead>
                         <tbody>
@@ -484,10 +481,11 @@ $attendance_records = $tableStmt->fetchAll(PDO::FETCH_ASSOC);
                                             <strong><?php echo htmlspecialchars($record['full'] ?? 'N/A'); ?></strong><br>
                                             <small class="text-muted"><?php echo htmlspecialchars($record['designation'] ?? 'N/A'); ?></small>
                                         </td>
+<!--                                         
+                                        <td><?php echo htmlspecialchars($record['department'] ?? 'N/A'); ?></td> -->
                                         
-                                        <td><?php echo htmlspecialchars($record['department'] ?? 'N/A'); ?></td>
                                         
-                                        <td class="text-center">
+                                        <!-- <td class="text-center">
                                             <?php if ($hasId): ?>
                                                 <span class="label label-primary"><i class="bi bi-check me-1"></i>Yes</span>
                                             <?php else: ?>
@@ -501,7 +499,7 @@ $attendance_records = $tableStmt->fetchAll(PDO::FETCH_ASSOC);
                                             <?php else: ?>
                                                 <span class="label label-danger"><i class="bi bi-x me-1"></i>No</span>
                                             <?php endif; ?>
-                                        </td>
+                                        </td>*/> -->
                                         
                                         <td class="text-center">
                                             <?php if ($isCompliant): ?>
@@ -511,7 +509,7 @@ $attendance_records = $tableStmt->fetchAll(PDO::FETCH_ASSOC);
                                             <?php endif; ?>
                                         </td>
 
-                                        <td class="text-center">
+                                        <!-- <td class="text-center">
                                             <?php if (!empty($record['photo_path'])): ?>
                                                 <a href="javascript:void(0);" onclick="viewPhoto('<?php echo htmlspecialchars($record['photo_path']); ?>', '<?php echo $formattedDateTime; ?>')" class="text-decoration-none text-inspinia">
                                                     <i class="bi bi-camera-fill me-1"></i>View
@@ -519,7 +517,7 @@ $attendance_records = $tableStmt->fetchAll(PDO::FETCH_ASSOC);
                                             <?php else: ?>
                                                 <span class="text-muted small">None</span>
                                             <?php endif; ?>
-                                        </td>
+                                        </td> -->
                                     </tr>
                                 <?php endforeach; ?>
                             <?php else: ?>

@@ -29,7 +29,6 @@ if (isset($_POST['action']) && $_POST['action'] === 'fetch_attendance') {
                 e.department,
                 e.unit,
                 e.area_of_assignment, 
-                a.status,
                 a.with_id, 
                 a.is_asean,
                 a.is_compliant,
@@ -53,11 +52,7 @@ if (isset($_POST['action']) && $_POST['action'] === 'fetch_attendance') {
                 $html .= "<td>" . htmlspecialchars($row['unit'] ?? 'N/A') . "</td>";
                 $html .= "<td>" . htmlspecialchars($row['area_of_assignment'] ?? 'N/A') . "</td>";
                 
-                // Attendance Status
-                $attStatus = $row['status'] ?? 'N/A';
-                $statusClass = ($attStatus === 'On Time') ? 'badge-success' : 'badge-warning';
-                $html .= "<td class='text-center'><span class='badge {$statusClass}'>" . htmlspecialchars($attStatus) . "</span></td>";
-
+                
                 // Style badges for With ID, ASEAN Attire, and Compliant
                 $withIdClass = ($row['with_id'] === 'Yes') ? 'badge-success' : 'badge-danger';
                 $aseanClass = ($row['is_asean'] === 'Yes') ? 'badge-success' : 'badge-danger';
@@ -121,7 +116,6 @@ if (isset($_POST['action']) && $_POST['action'] === 'fetch_attendance') {
                         <th>Department</th>
                         <th>Unit</th>
                         <th>Area of Assignment</th>
-                        <th class="text-center">Status</th>
                         <th class="text-center">With ID</th>
                         <th class="text-center">Proper Attire</th>
                         <th class="text-center">Compliant</th>
@@ -244,7 +238,7 @@ if (isset($_POST['action']) && $_POST['action'] === 'fetch_attendance') {
             const doc = new jsPDF('landscape');
 
             const empName = $('#attendance_full_name').text().trim() || 'Attendance_Report';
-            const headers = ['Date & Time Recorded', 'Designation', 'Department', 'Unit', 'Area of Assignment', 'Status', 'With ID', 'Proper Attire', 'Compliant'];
+            const headers = ['Date & Time Recorded', 'Designation', 'Department', 'Unit', 'Area of Assignment',  'With ID', 'Proper Attire', 'Compliant'];
             const data = [];
 
             $('#attendance_records_body tr:not(.no-data-row)').each(function() {
