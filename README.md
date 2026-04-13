@@ -22,6 +22,13 @@ git commit -m "Initial commit"
 git push -u origin main
 
 
+Github Push Specific file: 
+
+git add <file_name>
+git commit -m "Initial commit"
+git push -u origin main
+
+
 April 06, 2026 – Update
 - Added auto-capture in 5 seconds, recapture button, preview modal, and widened camera modal
 - Fixed bugs
