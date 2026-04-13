@@ -149,7 +149,7 @@ $totalRecords = $countStmt->fetchColumn();
 $totalPages = ceil($totalRecords / $limit);
 
 // Fetch the attendance records across all employees
-$tableSql = "SELECT a.designation, a.with_id, a.is_asean, a.is_compliant, a.time_recorded, a.photo_path, 
+$tableSql = "SELECT a.designation, a.with_id, a.is_asean, a.status, a.is_compliant, a.time_recorded, a.photo_path, 
                e.full, e.area_of_assignment, e.department, e.unit 
         FROM attendance_record a
         JOIN employees e ON a.emp_id = e.emp_id
@@ -192,8 +192,10 @@ $attendance_records = $tableStmt->fetchAll(PDO::FETCH_ASSOC);
             color: #676a6c;
             font-family: 'Open Sans', helvetica, arial, sans-serif;
             margin: 0;
-            padding: 40px 0;
             min-height: 100vh;
+            display: flex;
+            align-items: center; /* Center vertically */
+            justify-content: center; /* Center horizontally */
         }
 
         /* --- KIOSK FORM STYLES --- */
@@ -201,9 +203,11 @@ $attendance_records = $tableStmt->fetchAll(PDO::FETCH_ASSOC);
             background-color: rgba(255, 255, 255, 0.95);
             padding: 30px 20px;
             border-radius: 8px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
             animation: fadeIn 0.6s ease-out;
             text-align: center;
+            width: 100%;
+            max-width: 380px; /* Reduced width for a more compact board */
         }
 
         @keyframes fadeIn {
@@ -212,7 +216,7 @@ $attendance_records = $tableStmt->fetchAll(PDO::FETCH_ASSOC);
         }
 
         .logo-container { margin-bottom: 15px; }
-        h3 { font-weight: 600; margin-top: 10px; font-size: 24px; color: #333; }
+        h3 { font-weight: 600; margin-top: 10px; font-size: 22px; color: #333; }
 
         .ibox-content {
             background-color: #ffffff;
@@ -244,10 +248,12 @@ $attendance_records = $tableStmt->fetchAll(PDO::FETCH_ASSOC);
         .btn-primary:hover, .btn-primary:focus, .btn-primary:active { background-color: #18a689 !important; border-color: #18a689 !important; color: #FFFFFF !important; }
         .btn-white { color: inherit; background: white; border: 1px solid #e7eaec; }
         .btn-white:hover, .btn-white:focus { color: inherit; border: 1px solid #d2d2d2; background: #f8f9fa; }
+        .btn-info-custom { background-color: #23c6c8; border-color: #23c6c8; color: #FFFFFF; }
+        .btn-info-custom:hover { background-color: #21b9bb; border-color: #21b9bb; color: #FFFFFF; }
 
         /* Live Clock styling */
         .clock-panel { text-align: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px dashed #e7eaec; }
-        #live-clock { font-size: 2rem; font-weight: 700; color: #1ab394; margin-bottom: 0; line-height: 1.2; }
+        #live-clock { font-size: 1.8rem; font-weight: 700; color: #1ab394; margin-bottom: 0; line-height: 1.2; }
         #live-date { font-size: 0.85rem; font-weight: 600; color: #a7b1c2; text-transform: uppercase; letter-spacing: 0.5px; }
 
         /* Toggle Switches adapted for Inspinia */
@@ -277,15 +283,6 @@ $attendance_records = $tableStmt->fetchAll(PDO::FETCH_ASSOC);
 
 
         /* --- DATA TABLE STYLES --- */
-        .ibox-table {
-            background-color: rgba(255, 255, 255, 0.95);
-            border-top: 4px solid #1ab394;
-            border-radius: 8px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-            padding: 20px;
-            height: 100%;
-        }
-
         /* Labels (Badges) */
         .label {
             font-family: 'Open Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif;
@@ -323,114 +320,118 @@ $attendance_records = $tableStmt->fetchAll(PDO::FETCH_ASSOC);
         .text-inspinia:hover { color: #18a689; }
 
         .profile-modal-content { border-radius: 15px; border: none; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
+        .table-modal-content { border-top: 4px solid #1ab394; border-radius: 8px; border: none; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
     </style>
 </head>
 <body>
 
 <div class="container-fluid px-4">
-    <div class="row">
+    <!-- ========================================== -->
+    <!-- CENTERED: THE KIOSK FORM                   -->
+    <!-- ========================================== -->
+    <div class="loginscreen mx-auto">
         
-        <!-- ========================================== -->
-        <!-- LEFT COLUMN: THE KIOSK FORM                -->
-        <!-- ========================================== -->
-        <div class="col-lg-4 col-md-5 mb-4">
-            <div class="loginscreen mx-auto">
-                
-                <!-- Logo Section -->
-                <div class="logo-container">
-                    <img src="img/logo/DICT.png" alt="DICT Logo" class="img-fluid" style="max-height: 130px; object-fit: contain;">
-                </div>
-                
-                <h3>DICT Monday Flag Raising</h3>
-                <p class="text-muted">Attendance Checker</p>
+        <!-- Logo Section -->
+        <div class="logo-container">
+            <img src="img/logo/DICT.png" alt="DICT Logo" class="img-fluid" style="max-height: 120px; object-fit: contain;">
+        </div>
+        
+        <h3>DICT Monday Flag Raising</h3>
+        <p class="text-muted mb-4">Attendance Checker</p>
 
-                <!-- Display Database Errors -->
-                <?php if ($db_error): ?>
-                    <div class="alert alert-danger text-center" role="alert">
-                        <i class="bi bi-exclamation-triangle-fill"></i> <?php echo htmlspecialchars($db_error); ?>
-                    </div>
-                <?php endif; ?>
-
-                <div class="ibox-content mb-3">
-                    
-                    <!-- Live Clock -->
-                    <div class="clock-panel">
-                        <div id="live-clock">00:00:00 AM</div>
-                        <div id="live-date">Loading Date...</div>
-                    </div>
-
-                    <form id="attendance-form" method="POST" action="index.php">
-                        <input type="hidden" name="action" value="mark_attendance">
-                        <!-- Hidden field for the captured photo -->
-                        <input type="hidden" name="photo_data" id="photo_data" value="">
-                        
-                        <div class="mb-3">
-                            <label class="form-label text-muted fw-bold small mb-1">Employee Name</label>
-                            <select id="emp_id" name="emp_id" class="form-control" required <?php echo !$is_monday ? 'disabled' : ''; ?>>
-                                <option value=""></option> 
-                                <?php foreach ($employees as $emp): ?>
-                                    <option value="<?php echo htmlspecialchars($emp['emp_id']); ?>">
-                                        <?php echo htmlspecialchars($emp['full']); ?> 
-                                        <?php if(!empty($emp['designation'])) echo ' (' . htmlspecialchars($emp['designation']) . ')'; ?>
-                                    </option>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
-
-                        <div class="mb-4">
-                            <div class="toggle-row">
-                                <label class="form-check-label" for="with_id">
-                                    <i class="bi bi-person-vcard me-1 text-muted"></i> Wearing your ID?
-                                </label>
-                                <div class="form-check form-switch m-0 p-0">
-                                    <input class="form-check-input m-0 float-end" type="checkbox" role="switch" name="with_id" id="with_id" value="Yes" <?php echo !$is_monday ? 'disabled' : ''; ?>>
-                                </div>
-                            </div>
-                            <div class="toggle-row">
-                                <label class="form-check-label" for="is_asean">
-                                    <i class="bi bi-suit-tie me-1 text-muted"></i> Wearing Formal Attire?
-                                </label>
-                                <div class="form-check form-switch m-0 p-0">
-                                    <input class="form-check-input m-0 float-end" type="checkbox" role="switch" name="is_asean" id="is_asean" value="Yes" <?php echo !$is_monday ? 'disabled' : ''; ?>>
-                                </div>
-                            </div>
-                        </div>
-
-                        <?php if ($is_monday): ?>
-                            <button type="button" onclick="confirmSignIn()" class="btn btn-primary w-100 d-block">
-                                <i class="bi bi-box-arrow-in-right me-1"></i> Sign In
-                            </button>
-                        <?php else: ?>
-                            <div class="alert alert-warning text-center p-2 mb-3" style="font-size: 13px; background-color: #fcf8e3; border-color: #faebcc; color: #8a6d3b;">
-                                <i class="bi bi-info-circle-fill"></i> Attendance is only available on Mondays.
-                            </div>
-                            <button type="button" class="btn w-100 d-block" disabled style="background-color: #e5e6e7; border-color: #e5e6e7; color: #888; cursor: not-allowed;">
-                                <i class="bi bi-lock-fill me-1"></i> Sign In Locked
-                            </button>
-                        <?php endif; ?>
-                    </form>
-                </div>
-
-                <a href="login.php" class="btn btn-white w-100">
-                    <i class="bi bi-person-circle me-1"></i> Admin / Staff Login
-                </a>
-
+        <!-- Display Database Errors -->
+        <?php if ($db_error): ?>
+            <div class="alert alert-danger text-center" role="alert">
+                <i class="bi bi-exclamation-triangle-fill"></i> <?php echo htmlspecialchars($db_error); ?>
             </div>
+        <?php endif; ?>
+
+        <div class="ibox-content mb-3">
+            
+            <!-- Live Clock -->
+            <div class="clock-panel">
+                <div id="live-clock">00:00:00 AM</div>
+                <div id="live-date">Loading Date...</div>
+            </div>
+
+            <form id="attendance-form" method="POST" action="index.php">
+                <input type="hidden" name="action" value="mark_attendance">
+                <!-- Hidden field for the captured photo -->
+                <input type="hidden" name="photo_data" id="photo_data" value="">
+                
+                <div class="mb-3">
+                    <label class="form-label text-muted fw-bold small mb-1">Employee Name</label>
+                    <select id="emp_id" name="emp_id" class="form-control" required <?php echo !$is_monday ? 'disabled' : ''; ?>>
+                        <option value=""></option> 
+                        <?php foreach ($employees as $emp): ?>
+                            <option value="<?php echo htmlspecialchars($emp['emp_id']); ?>">
+                                <?php echo htmlspecialchars($emp['full']); ?> 
+                                <?php if(!empty($emp['designation'])) echo ' (' . htmlspecialchars($emp['designation']) . ')'; ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+
+                <div class="mb-4">
+                    <div class="toggle-row">
+                        <label class="form-check-label" for="with_id">
+                            <i class="bi bi-person-vcard me-1 text-muted"></i> Wearing your ID?
+                        </label>
+                        <div class="form-check form-switch m-0 p-0">
+                            <input class="form-check-input m-0 float-end" type="checkbox" role="switch" name="with_id" id="with_id" value="Yes" <?php echo !$is_monday ? 'disabled' : ''; ?>>
+                        </div>
+                    </div>
+                    <div class="toggle-row">
+                        <label class="form-check-label" for="is_asean">
+                            <i class="bi bi-suit-tie me-1 text-muted"></i> Wearing Formal Attire?
+                        </label>
+                        <div class="form-check form-switch m-0 p-0">
+                            <input class="form-check-input m-0 float-end" type="checkbox" role="switch" name="is_asean" id="is_asean" value="Yes" <?php echo !$is_monday ? 'disabled' : ''; ?>>
+                        </div>
+                    </div>
+                </div>
+
+                <?php if ($is_monday): ?>
+                    <button type="button" onclick="confirmSignIn()" class="btn btn-primary w-100 d-block">
+                        <i class="bi bi-box-arrow-in-right me-1"></i> Sign In
+                    </button>
+                <?php else: ?>
+                    <div class="alert alert-warning text-center p-2 mb-3" style="font-size: 13px; background-color: #fcf8e3; border-color: #faebcc; color: #8a6d3b;">
+                        <i class="bi bi-info-circle-fill"></i> Attendance is only available on Mondays.
+                    </div>
+                    <button type="button" class="btn w-100 d-block" disabled style="background-color: #e5e6e7; border-color: #e5e6e7; color: #888; cursor: not-allowed;">
+                        <i class="bi bi-lock-fill me-1"></i> Sign In Locked
+                    </button>
+                <?php endif; ?>
+            </form>
         </div>
 
+        <a href="login.php" class="btn btn-white w-100 mb-2">
+            <i class="bi bi-person-circle me-1"></i> Admin / Staff Login
+        </a>
+        
+        <!-- Button to trigger Recent Records Modal -->
+        <button type="button" class="btn btn-info-custom w-100" data-bs-toggle="modal" data-bs-target="#tableRecordsModal">
+            <i class="bi bi-table me-1"></i> View Recent Records
+        </button>
 
-        <!-- ========================================== -->
-        <!-- RIGHT COLUMN: THE DATA TABLE               -->
-        <!-- ========================================== -->
-        <div class="col-lg-8 col-md-7 mb-4">
-            <div class="ibox-table">
+    </div>
+</div>
+
+<!-- ========================================== -->
+<!-- MODAL: DATA TABLE                          -->
+<!-- ========================================== -->
+<div class="modal fade" id="tableRecordsModal" tabindex="-1" aria-labelledby="tableRecordsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content table-modal-content">
+            <div class="modal-header border-bottom-0 pb-0">
+                <h5 class="modal-title text-dark fw-bold" id="tableRecordsModalLabel"><i class="bi bi-card-list me-2 text-inspinia"></i> Recent Attendance Records</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body pb-4">
                 
-                <div class="d-flex justify-content-between align-items-center mb-4">
-                    <h5 class="mb-0 text-dark fw-bold"><i class="bi bi-card-list me-2"></i> Recent Attendance Records</h5>
-                </div>
-
                 <!-- Show Entries Dropdown -->
-                <div class="row mb-3 align-items-center">
+                <div class="row mb-3 mt-2 align-items-center">
                     <div class="col-sm-12">
                         <form method="GET" action="index.php" class="d-inline-flex align-items-center" id="entriesForm">
                             <label class="mb-0 me-2 text-muted fw-normal">Show</label>
@@ -452,8 +453,7 @@ $attendance_records = $tableStmt->fetchAll(PDO::FETCH_ASSOC);
                             <tr>
                                 <th>Date & Time</th>
                                 <th>Employee Name</th>
-                                <!-- <th>Department</th> -->
-                                <th class="text-center">Compliant</th>   
+                                <th class="text-center">Status</th>   
                             </tr>
                         </thead>
                         <tbody>
@@ -481,48 +481,19 @@ $attendance_records = $tableStmt->fetchAll(PDO::FETCH_ASSOC);
                                             <strong><?php echo htmlspecialchars($record['full'] ?? 'N/A'); ?></strong><br>
                                             <small class="text-muted"><?php echo htmlspecialchars($record['designation'] ?? 'N/A'); ?></small>
                                         </td>
-<!--                                         
-                                        <td><?php echo htmlspecialchars($record['department'] ?? 'N/A'); ?></td> -->
-                                        
-                                        
-                                        <!-- <td class="text-center">
-                                            <?php if ($hasId): ?>
-                                                <span class="label label-primary"><i class="bi bi-check me-1"></i>Yes</span>
-                                            <?php else: ?>
-                                                <span class="label label-danger"><i class="bi bi-x me-1"></i>No</span>
-                                            <?php endif; ?>
-                                        </td>
                                         
                                         <td class="text-center">
-                                            <?php if ($hasProperAttire): ?>
-                                                <span class="label label-primary"><i class="bi bi-check me-1"></i>Yes</span>
+                                            <?php if (isset($record['status']) && $record['status'] === 'Late'): ?>
+                                                <span class="label label-danger"><i class="bi bi-exclamation-circle me-1"></i>Late</span>
                                             <?php else: ?>
-                                                <span class="label label-danger"><i class="bi bi-x me-1"></i>No</span>
-                                            <?php endif; ?>
-                                        </td>*/> -->
-                                        
-                                        <td class="text-center">
-                                            <?php if ($isCompliant): ?>
-                                                <span class="label label-primary"><i class="bi bi-check me-1"></i>Yes</span>
-                                            <?php else: ?>
-                                                <span class="label label-danger"><i class="bi bi-x me-1"></i>No</span>
+                                                <span class="label label-primary"><i class="bi bi-check-circle me-1"></i>On Time</span>
                                             <?php endif; ?>
                                         </td>
-
-                                        <!-- <td class="text-center">
-                                            <?php if (!empty($record['photo_path'])): ?>
-                                                <a href="javascript:void(0);" onclick="viewPhoto('<?php echo htmlspecialchars($record['photo_path']); ?>', '<?php echo $formattedDateTime; ?>')" class="text-decoration-none text-inspinia">
-                                                    <i class="bi bi-camera-fill me-1"></i>View
-                                                </a>
-                                            <?php else: ?>
-                                                <span class="text-muted small">None</span>
-                                            <?php endif; ?>
-                                        </td> -->
                                     </tr>
                                 <?php endforeach; ?>
                             <?php else: ?>
                                 <tr>
-                                    <td colspan="7" class="text-center text-muted py-4">
+                                    <td colspan="3" class="text-center text-muted py-4">
                                         <h4 class="fw-light mb-1 mt-3">No Records Yet</h4>
                                         <p class="small text-muted mb-4">Waiting for the first attendance entry.</p>
                                     </td>
@@ -584,6 +555,7 @@ $attendance_records = $tableStmt->fetchAll(PDO::FETCH_ASSOC);
     </div>
 </div>
 
+
 <!-- Photo Viewer Modal -->
 <div class="modal fade" id="photoViewerModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
@@ -621,11 +593,23 @@ $attendance_records = $tableStmt->fetchAll(PDO::FETCH_ASSOC);
 
     // Function to handle viewing the specific photo path and timestamp in the modal
     function viewPhoto(imagePath, dateTime) {
+        // Ensure the table records modal is properly closed if open 
+        var recordsModal = bootstrap.Modal.getInstance(document.getElementById('tableRecordsModal'));
+        if(recordsModal) { recordsModal.hide(); }
+
         document.getElementById('attendanceImagePreview').src = imagePath;
         document.getElementById('photoDateTimePreview').innerText = dateTime;
         var photoModal = new bootstrap.Modal(document.getElementById('photoViewerModal'));
         photoModal.show();
     }
+
+    // Auto-open modal if user is navigating table pagination via GET params
+    <?php if (isset($_GET['page']) || isset($_GET['limit'])): ?>
+    document.addEventListener("DOMContentLoaded", function() {
+        var myModal = new bootstrap.Modal(document.getElementById('tableRecordsModal'));
+        myModal.show();
+    });
+    <?php endif; ?>
 </script>
 
 </body>

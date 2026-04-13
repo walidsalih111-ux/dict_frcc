@@ -11,7 +11,7 @@ if (isset($_POST['action']) && $_POST['action'] === 'fetch_date_attendance') {
     include 'connect.php'; 
 
     if (!$pdo) {
-        echo "<tr><td colspan='10' class='text-center text-danger'>Database connection failed.</td></tr>";
+        echo "<tr><td colspan='12' class='text-center text-danger'>Database connection failed.</td></tr>";
         exit;
     }
 
@@ -54,6 +54,8 @@ if (isset($_POST['action']) && $_POST['action'] === 'fetch_date_attendance') {
                             <span class='pdf-sex' style='display:none;'>".strtoupper($row['gender'] ?? '')."</span>
                             <span class='pdf-division' style='display:none;'>".htmlspecialchars($row['division'] ?? '')."</span>
                             <span class='pdf-id-number' style='display:none;'>".htmlspecialchars($row['emp_id'])."</span>
+                            <span class='pdf-with-id' style='display:none;'>".htmlspecialchars($row['with_id'] ?? 'No')."</span>
+                            <span class='pdf-proper-attire' style='display:none;'>".htmlspecialchars($row['proper_attire'] ?? 'No')."</span>
                           </td>";
                 $html .= "<td>" . $formattedTime . "</td>";
                 $html .= "<td><span class='pdf-designation'>" . htmlspecialchars($row['designation'] ?? 'N/A') . "</span></td>";
@@ -61,13 +63,20 @@ if (isset($_POST['action']) && $_POST['action'] === 'fetch_date_attendance') {
                 $html .= "<td>" . htmlspecialchars($row['unit'] ?? 'N/A') . "</td>";
                 $html .= "<td>" . htmlspecialchars($row['area_of_assignment'] ?? 'N/A') . "</td>";
                 
-                $withIdClass = ($row['with_id'] === 'Yes') ? 'badge-success' : 'badge-danger';
-                $aseanClass = ($row['proper_attire'] === 'Yes') ? 'badge-success' : 'badge-danger';
+                $gender = strtoupper($row['gender'] ?? '');
+                $isMale = ($gender === 'M' || $gender === 'MALE');
+                $isFemale = ($gender === 'F' || $gender === 'FEMALE');
+                
+                $html .= "<td class='text-center'>" . ($isMale ? '<i class="fa fa-check text-success"></i>' : '') . "</td>";
+                $html .= "<td class='text-center'>" . ($isFemale ? '<i class="fa fa-check text-success"></i>' : '') . "</td>";
+                
+                $withIdCheck = ($row['with_id'] === 'Yes') ? '<i class="fa fa-check text-success"></i>' : '';
+                $aseanCheck = ($row['proper_attire'] === 'Yes') ? '<i class="fa fa-check text-success"></i>' : '';
                 $compliantClass = ($row['is_compliant'] == 1) ? 'badge-success' : 'badge-danger';
                 $compliantText = ($row['is_compliant'] == 1) ? 'Yes' : 'No';
 
-                $html .= "<td class='text-center'><span class='badge {$withIdClass}'>" . htmlspecialchars($row['with_id'] ?? 'No') . "</span></td>";
-                $html .= "<td class='text-center'><span class='badge {$aseanClass}'>" . htmlspecialchars($row['proper_attire'] ?? 'No') . "</span></td>";
+                $html .= "<td class='text-center'>{$withIdCheck}</td>";
+                $html .= "<td class='text-center'>{$aseanCheck}</td>";
                 $html .= "<td class='text-center'><span class='badge {$compliantClass}'>" . $compliantText . "</span></td>";
 
                 if (!empty($row['photo_path'])) {
@@ -79,13 +88,13 @@ if (isset($_POST['action']) && $_POST['action'] === 'fetch_date_attendance') {
                 $html .= "</tr>";
             }
         } else {
-            $html .= "<tr class='no-data-row'><td colspan='10' class='text-center text-muted py-4'>
+            $html .= "<tr class='no-data-row'><td colspan='12' class='text-center text-muted py-4'>
                         <i class='fa fa-folder-open-o fa-2x mb-2 d-block'></i>
                         <em>No attendees found for this date.</em>
                       </td></tr>";
         }
     } catch (\PDOException $e) {
-        $html .= "<tr><td colspan='10' class='text-center text-danger'>Error: " . $e->getMessage() . "</td></tr>";
+        $html .= "<tr><td colspan='12' class='text-center text-danger'>Error: " . $e->getMessage() . "</td></tr>";
     }
     
     echo $html;
@@ -116,6 +125,8 @@ if (isset($_POST['action']) && $_POST['action'] === 'fetch_date_attendance') {
                         <th>Department</th>
                         <th>Unit</th>
                         <th>Area of Assignment</th>
+                        <th class="text-center">M</th>
+                        <th class="text-center">F</th>
                         <th class="text-center">With ID</th>
                         <th class="text-center">Proper Attire</th>
                         <th class="text-center">Compliant</th>
@@ -124,7 +135,7 @@ if (isset($_POST['action']) && $_POST['action'] === 'fetch_date_attendance') {
                 </thead>
                 <tbody id="attendance_records_body">
                     <tr class="no-data-row">
-                        <td colspan="10" class="text-center text-muted py-4">
+                        <td colspan="12" class="text-center text-muted py-4">
                             <i class="fa fa-calendar fa-2x mb-2 d-block"></i>
                             <em>Select a date from the table to view attendees.</em>
                         </td>
@@ -220,14 +231,12 @@ if (isset($_POST['action']) && $_POST['action'] === 'fetch_date_attendance') {
                 if (cells.length < 10) return;
 
                 const nameCell = cells.eq(0);
-                const withIdVal = cells.eq(6).text().trim(); // With ID column
-                const properAttireVal = cells.eq(7).text().trim(); // Proper Attire column
 
                 const dbSex = nameCell.find('.pdf-sex').text().trim().toUpperCase();
                 const isM = (dbSex === 'M' || dbSex === 'MALE');
                 const isF = (dbSex === 'F' || dbSex === 'FEMALE');
-                const isWithId = (withIdVal === 'Yes');
-                const isAttire = (properAttireVal === 'Yes');
+                const isWithId = (nameCell.find('.pdf-with-id').text().trim() === 'Yes');
+                const isAttire = (nameCell.find('.pdf-proper-attire').text().trim() === 'Yes');
 
                 const employeeData = [
                     counter++,
@@ -355,10 +364,8 @@ if (isset($_POST['action']) && $_POST['action'] === 'fetch_date_attendance') {
                         doc.rect(boxX, boxY, boxSize, boxSize); // Draw empty box
 
                         if (isChecked) {
-                            doc.setFont('ZapfDingbats', 'normal');
-                            doc.setFontSize(8);
-                            doc.text("\u2714", data.cell.x + data.cell.width / 2, data.cell.y + (data.cell.height / 2) + 3, { align: 'center' });
-                            doc.setFont('times', 'normal'); // Reset font
+                            doc.setFillColor(0, 0, 0);
+                            doc.rect(boxX + 1, boxY + 1, boxSize - 2, boxSize - 2, 'F');
                         }
                     }
                 },
