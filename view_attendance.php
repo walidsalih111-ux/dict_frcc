@@ -177,8 +177,25 @@ if (isset($_POST['action']) && $_POST['action'] === 'fetch_date_attendance') {
         if(window.jQuery) { $('#photoViewerModal').modal('show'); }
     }
 
+    // Preload header image for PDF exports
+    let headerImgInfo = null;
     document.addEventListener("DOMContentLoaded", function() {
-        
+        const img = new Image();
+        img.crossOrigin = "Anonymous";
+        img.onload = function() {
+            const canvas = document.createElement('canvas');
+            canvas.width = img.width;
+            canvas.height = img.height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0);
+            headerImgInfo = {
+                data: canvas.toDataURL('image/jpeg'),
+                width: img.width,
+                height: img.height
+            };
+        };
+        img.src = 'img/view_attendance/header.jpg';
+
         // Complex Spreadsheet PDF Generation
         $(document).on('click', '#exportAttendancePdfBtn, #viewAttendancePdfBtn', function(e) {
             e.preventDefault();
@@ -203,16 +220,24 @@ if (isset($_POST['action']) && $_POST['action'] === 'fetch_date_attendance') {
                 if (cells.length < 10) return;
 
                 const nameCell = cells.eq(0);
+                const withIdVal = cells.eq(6).text().trim(); // With ID column
                 const properAttireVal = cells.eq(7).text().trim(); // Proper Attire column
+
+                const dbSex = nameCell.find('.pdf-sex').text().trim().toUpperCase();
+                const isM = (dbSex === 'M' || dbSex === 'MALE');
+                const isF = (dbSex === 'F' || dbSex === 'FEMALE');
+                const isWithId = (withIdVal === 'Yes');
+                const isAttire = (properAttireVal === 'Yes');
 
                 const employeeData = [
                     counter++,
-                    nameCell.find('.pdf-full-name').text().trim(),
-                    nameCell.find('.pdf-sex').text().trim(), // from e.gender
-                    cells.eq(2).text().trim(), // DESIGNATION
-                    nameCell.find('.pdf-division').text().trim(), // DIVISION
-                    nameCell.find('.pdf-id-number').text().trim(), // from e.emp_id
-                    properAttireVal // Compliant Status
+                    { content: '', isChecked: isWithId },          // ID
+                    { content: '', isChecked: isAttire },          // Properattire
+                    nameCell.find('.pdf-full-name').text().trim(), // COMPLETE NAME
+                    { content: '', isChecked: isM },               // M
+                    { content: '', isChecked: isF },               // F
+                    cells.eq(2).text().trim(),                     // DESIGNATION
+                    nameCell.find('.pdf-division').text().trim()   // DIVISION
                 ];
                 dataRows.push(employeeData);
             });
@@ -227,106 +252,114 @@ if (isset($_POST['action']) && $_POST['action'] === 'fetch_date_attendance') {
             const printedDate = now.toLocaleDateString('en-US', dateOptions);
 
             const pageWidth = doc.internal.pageSize.getWidth();
-            const textY = 25;
+            let currentY = 25;
 
-            doc.setFontSize(8);
-            doc.setFont('Helvetica', 'normal');
+            // Set global font equivalent to Palatino Linotype / Serif styling
+            doc.setFont('times', 'normal');
 
-            // Draw placeholders for logos
-            doc.setFillColor(78, 115, 223); doc.circle(pageWidth * 0.15, textY + 5, 20, 'F');
-            doc.setFillColor(255, 193, 7); doc.circle(pageWidth * 0.85, textY + 5, 20, 'F');
-
-            // Header Text
-            doc.setFont('Helvetica', 'bold');
-            doc.text('REPUBLIC OF THE PHILIPPINES', pageWidth / 2, textY, { align: 'center' });
-            doc.setFont('Helvetica', 'normal');
-            doc.text('DEPARTMENT OF INFORMATION AND COMMUNICATIONS TECHNOLOGY', pageWidth / 2, textY + 12, { align: 'center' });
+            // Draw Header Image or Fallback text
+            if (headerImgInfo) {
+                const targetHeight = 55; // Set image display height
+                const ratio = headerImgInfo.width / headerImgInfo.height;
+                const targetWidth = targetHeight * ratio;
+                const xPos = (pageWidth - targetWidth) / 2; // Center horizontally
+                
+                doc.addImage(headerImgInfo.data, 'JPEG', xPos, currentY, targetWidth, targetHeight);
+                currentY += targetHeight + 15; // move Y down below image
+            } else {
+                // Fallback text if the image fails to load
+                doc.setFont('times', 'bold');
+                doc.text('REPUBLIC OF THE PHILIPPINES', pageWidth / 2, currentY, { align: 'center' });
+                doc.setFont('times', 'normal');
+                doc.text('DEPARTMENT OF INFORMATION AND COMMUNICATIONS TECHNOLOGY', pageWidth / 2, currentY + 12, { align: 'center' });
+                currentY += 30;
+            }
             
             doc.setFontSize(10);
-            doc.setFont('Helvetica', 'bold');
-            doc.text('ATTENDANCE SHEET', pageWidth / 2, textY + 30, { align: 'center' });
+            doc.setFont('times', 'bold');
+            doc.text('ATTENDANCE SHEET', pageWidth / 2, currentY, { align: 'center' });
 
             doc.setFontSize(8);
-            doc.setFont('Helvetica', 'normal');
-            doc.text('NAME OF ACTIVITY: Flag Raising Ceremony', pageWidth * 0.1, textY + 45);
-            doc.setFont('Helvetica', 'bold');
-            doc.text(`DATE : ${ceremonyDate}`, pageWidth * 0.1, textY + 58);
+            doc.setFont('times', 'normal');
+            doc.text('NAME OF ACTIVITY: Flag Raising Ceremony', pageWidth * 0.1, currentY + 15);
+            doc.setFont('times', 'bold');
+            doc.text(`DATE : ${ceremonyDate}`, pageWidth * 0.1, currentY + 28);
 
             // Privacy Notice
-            doc.setFont('Helvetica', 'italic');
+            doc.setFont('times', 'italic');
             doc.setFontSize(7);
             const noticeText = "DATA PRIVACY NOTICE: The data and information provided in this form are solely intended for the designated activity. Any use of this data for purposes other than those intended by the process owner constitutes a violation of the Data Privacy Act of 2023. By voluntarily providing this data and information, the Data Subject explicitly consents to its use by the office for its intended purpose. This includes, but is not limited to, documentation processes related to the activity and sharing on social media platforms for promotional or informational purposes. Your likeness in event photos may be used. You can withdraw consent by contacting us at region9basulta@dict.gov.ph";
-            doc.text(noticeText, pageWidth / 2, textY + 75, { align: 'center', maxWidth: pageWidth * 0.85 });
+            doc.text(noticeText, pageWidth / 2, currentY + 45, { align: 'center', maxWidth: pageWidth * 0.85 });
 
             // Table Drawing
             doc.autoTable({
-                startY: textY + 110,
+                startY: currentY + 80,
                 theme: 'grid',
                 margin: { left: pageWidth * 0.05, right: pageWidth * 0.05 },
                 headStyles: { 
                     fillColor: false, textColor: [0,0,0], fontStyle: 'bold', fontSize: 6,
-                    lineWidth: 0.5, lineColor: [180, 180, 180], halign: 'center', valign: 'middle'
+                    lineWidth: 0.5, lineColor: [180, 180, 180], halign: 'center', valign: 'middle',
+                    font: 'times'
                 },
                 styles: { 
-                    fontSize: 7, cellPadding: 2, font: 'Helvetica', textColor: [0,0,0], 
+                    fontSize: 7, cellPadding: 2, font: 'times', textColor: [0,0,0], 
                     lineWidth: 0.5, lineColor: [180, 180, 180], valign: 'middle' 
                 },
                 head: [
                     [
                         { content: '', rowSpan: 2 },
-                        { content: 'COMPLETE NAME', rowSpan: 2 },
+                        { content: 'ID', rowSpan: 2 },
+                        { content: 'Properattire', rowSpan: 2 },
+                        { content: '', rowSpan: 2 }, // COMPLETE NAME (drawn manually)
                         { content: 'SEX', colSpan: 2 }, 
                         { content: 'DESIGNATION', rowSpan: 2 },
-                        { content: 'DIVISION', rowSpan: 2 },
-                        { content: 'ID', rowSpan: 2 },
-                        { content: 'Properattire', rowSpan: 2 } 
+                        { content: 'DIVISION', rowSpan: 2 }
                     ],
                     [
-                        { content: '', colSpan: 2 }, 'M', 'F'
+                        'M', 'F'
                     ]
                 ],
                 body: dataRows,
                 columnStyles: {
-                    0: { halign: 'center', fontStyle: 'bold' },
-                    1: { minWidth: pageWidth * 0.20 }, 
-                    2: { halign: 'center' }, 3: { halign: 'center' },
-                    4: { minWidth: pageWidth * 0.15 },
-                    5: { minWidth: pageWidth * 0.10 },
-                    6: { minWidth: pageWidth * 0.05 },
-                    7: { halign: 'center', fontStyle: 'bold' },
+                    0: { halign: 'center', fontStyle: 'bold', cellWidth: 25 },
+                    1: { halign: 'center', cellWidth: pageWidth * 0.05 }, // ID
+                    2: { halign: 'center', cellWidth: pageWidth * 0.08 }, // Properattire
+                    3: { minWidth: pageWidth * 0.25 }, // COMPLETE NAME
+                    4: { halign: 'center', cellWidth: 25 }, // M
+                    5: { halign: 'center', cellWidth: 25 }, // F
+                    6: { halign: 'center', minWidth: pageWidth * 0.15 }, // DESIGNATION
+                    7: { halign: 'center', minWidth: pageWidth * 0.15 }, // DIVISION
                 },
                 didDrawCell: function (data) {
                     const doc = data.doc;
-                    if (data.section === 'head' && data.column.index === 1 && data.row.index === 0) {
+                    if (data.section === 'head' && data.column.index === 3 && data.row.index === 0) {
                         const cell = data.cell;
-                        doc.setFontSize(6); doc.setFont('Helvetica', 'bold');
+                        doc.setFontSize(6); doc.setFont('times', 'bold');
                         doc.text('COMPLETE NAME', cell.x + cell.width / 2, cell.y + 12, { align: 'center' });
-                        doc.setFont('Helvetica', 'normal'); doc.setFontSize(5);
+                        doc.setFont('times', 'normal'); doc.setFontSize(5);
                         doc.text('(Firstname, M.I., Surname)', cell.x + cell.width / 2, cell.y + 19, { align: 'center' });
                     }
                     
-                    // Manual M/F Checkmarks
-                    if (data.section === 'body' && data.row.index === 0 && (data.column.index === 2 || data.column.index === 3)) {
-                        doc.setFont('ZapfDingbats', 'normal');
-                        const dbSexVal = data.row.raw[2].toUpperCase(); // MALE or M / FEMALE or F
-                        const checkmark = "\u2714"; 
+                    // Draw Checkboxes for ID, Properattire, M, F
+                    if (data.section === 'body' && (data.column.index === 1 || data.column.index === 2 || data.column.index === 4 || data.column.index === 5)) {
+                        const rawData = data.cell.raw;
+                        const isChecked = rawData && rawData.isChecked;
+                        
+                        // Draw square box
+                        const boxSize = 8;
+                        const boxX = data.cell.x + (data.cell.width - boxSize) / 2;
+                        const boxY = data.cell.y + (data.cell.height - boxSize) / 2;
+                        
+                        doc.setLineWidth(0.5);
+                        doc.setDrawColor(0, 0, 0);
+                        doc.rect(boxX, boxY, boxSize, boxSize); // Draw empty box
 
-                        if(data.column.index === 2 && (dbSexVal === 'M' || dbSexVal === 'MALE')) {
-                            doc.text(checkmark, data.cell.x + data.cell.width / 2, data.cell.y + 12, { align: 'center' });
+                        if (isChecked) {
+                            doc.setFont('ZapfDingbats', 'normal');
+                            doc.setFontSize(8);
+                            doc.text("\u2714", data.cell.x + data.cell.width / 2, data.cell.y + (data.cell.height / 2) + 3, { align: 'center' });
+                            doc.setFont('times', 'normal'); // Reset font
                         }
-                        if(data.column.index === 3 && (dbSexVal === 'F' || dbSexVal === 'FEMALE')) {
-                            doc.text(checkmark, data.cell.x + data.cell.width / 2, data.cell.y + 12, { align: 'center' });
-                        }
-                        doc.setFont('Helvetica', 'normal');
-                    }
-                    
-                    // Proper Attire Checkmarks
-                    if (data.section === 'body' && data.column.index === 7) {
-                        doc.setFont('ZapfDingbats', 'normal');
-                        if(data.cell.raw === 'Yes') { 
-                            doc.text("\u2714", data.cell.x + data.cell.width / 2, data.cell.y + 12, { align: 'center' }); 
-                        }
-                        doc.setFont('Helvetica', 'normal');
                     }
                 },
                 didDrawPage: function (data) {
@@ -334,6 +367,7 @@ if (isset($_POST['action']) && $_POST['action'] === 'fetch_date_attendance') {
                     const pageHeight = pageSize.height ? pageSize.height : pageSize.getHeight();
                     const pageWidth = pageSize.width ? pageSize.width : pageSize.getWidth();
                     
+                    doc.setFont('times', 'normal');
                     doc.setFontSize(7); doc.setTextColor(100);
                     doc.text(`Printed by: ${printedByAdmin}`, data.settings.margin.left, pageHeight - 12);
                     doc.text(`Date Printed: ${printedDate}`, data.settings.margin.left, pageHeight - 7);
