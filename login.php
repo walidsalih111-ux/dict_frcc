@@ -16,7 +16,6 @@ include 'connect.php';
 
 $error = '';
 $success = '';
-$attempted_role = 'user'; // Default to user
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     
@@ -25,7 +24,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // ==========================================
     $username = isset($_POST['username']) ? trim($_POST['username']) : '';
     $password = isset($_POST['password']) ? $_POST['password'] : '';
-    $attempted_role = isset($_POST['login_role']) ? $_POST['login_role'] : 'user';
 
     if ($username === '' || $password === '') {
         $error = 'Please enter username and password.';
@@ -54,24 +52,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
 
                 if ($verified) {
-                    // Make sure the user is logging in through the right portal tab
-                    if ($role !== $attempted_role) {
-                        $error = 'Access denied: Please use the correct login portal for your role.';
+                    session_regenerate_id(true);
+                    $_SESSION['user_id'] = $id;
+                    $_SESSION['username'] = $db_username;
+                    $_SESSION['fullname'] = $fullname;
+                    $_SESSION['role'] = $role; 
+                    
+                    // Redirect based on user role from the database
+                    if ($role === 'admin') {
+                        header('Location: dashboard.php');
                     } else {
-                        session_regenerate_id(true);
-                        $_SESSION['user_id'] = $id;
-                        $_SESSION['username'] = $db_username;
-                        $_SESSION['fullname'] = $fullname;
-                        $_SESSION['role'] = $role; 
-                        
-                        // Redirect based on user role
-                        if ($role === 'admin') {
-                            header('Location: dashboard.php');
-                        } else {
-                            header('Location: my_attendance.php');
-                        }
-                        exit;
+                        header('Location: my_attendance.php');
                     }
+                    exit;
                 } else {
                     $error = 'Invalid username or password.';
                 }
@@ -188,17 +181,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             color: #FFFFFF !important;
         }
 
-        .btn-info { /* Inspinia Blue for Admin */
-            background-color: #1c84c6;
-            border-color: #1c84c6;
-            color: #FFFFFF;
-        }
-        .btn-info:hover, .btn-info:focus, .btn-info:active {
-            background-color: #1a7bb9 !important;
-            border-color: #1a7bb9 !important;
-            color: #FFFFFF !important;
-        }
-
         .btn-white {
             color: inherit;
             background: white;
@@ -208,28 +190,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             color: inherit;
             border: 1px solid #d2d2d2;
             background: #f8f9fa;
-        }
-
-        /* Custom Tabs */
-        .nav-tabs {
-            border-bottom: 1px solid #e7eaec;
-            margin-bottom: 20px;
-        }
-        .nav-tabs .nav-link {
-            color: #a7b1c2;
-            border: none;
-            font-weight: 600;
-            padding: 8px 15px;
-            font-size: 15px;
-        }
-        .nav-tabs .nav-link:hover {
-            color: #676a6c;
-            border-color: transparent;
-        }
-        .nav-tabs .nav-link.active {
-            color: #676a6c;
-            background-color: transparent;
-            border-bottom: 2px solid #1ab394;
         }
 
         /* Utilities */
@@ -274,64 +234,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <?php endif; ?>
 
     <div class="ibox-content mb-3">
-        
-        <!-- Role Selection Tabs -->
-        <ul class="nav nav-tabs nav-justified" id="loginTabs" role="tablist">
-            <li class="nav-item" role="presentation">
-                <button class="nav-link <?php echo $attempted_role !== 'admin' ? 'active' : ''; ?>" id="user-tab" data-bs-toggle="tab" data-bs-target="#user-form" type="button" role="tab">User</button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link <?php echo $attempted_role === 'admin' ? 'active' : ''; ?>" id="admin-tab" data-bs-toggle="tab" data-bs-target="#admin-form" type="button" role="tab">Admin</button>
-            </li>
-        </ul>
-
-        <div class="tab-content" id="loginTabsContent">
-            
-            <!-- ================= USER LOGIN FORM ================= -->
-            <div class="tab-pane fade <?php echo $attempted_role !== 'admin' ? 'show active' : ''; ?>" id="user-form" role="tabpanel">
-                <form method="POST" action="">
-                    <input type="hidden" name="login_role" value="user">
-
-                    <div class="mb-3">
-                        <input type="text" class="form-control" id="user_username" name="username" placeholder="Username" required>
-                    </div>
-
-                    <div class="mb-4 position-relative">
-                        <input type="password" class="form-control pe-5" id="user_password" name="password" placeholder="Password" required>
-                        <span class="position-absolute top-50 end-0 translate-middle-y me-3 toggle-password" onclick="togglePassword('user_password', this)">
-                            <i class="bi bi-eye"></i>
-                        </span>
-                    </div>
-
-                    <button type="submit" class="btn btn-primary w-100 d-block">
-                        Login
-                    </button>
-                </form>
+        <!-- ================= SINGLE LOGIN FORM ================= -->
+        <form method="POST" action="">
+            <div class="mb-3">
+                <input type="text" class="form-control" id="username" name="username" placeholder="Username" required>
             </div>
 
-            <!-- ================= ADMIN LOGIN FORM ================= -->
-            <div class="tab-pane fade <?php echo $attempted_role === 'admin' ? 'show active' : ''; ?>" id="admin-form" role="tabpanel">
-                <form method="POST" action="">
-                    <input type="hidden" name="login_role" value="admin">
-
-                    <div class="mb-3">
-                        <input type="text" class="form-control" id="admin_username" name="username" placeholder="Admin Username" required>
-                    </div>
-
-                    <div class="mb-4 position-relative">
-                        <input type="password" class="form-control pe-5" id="admin_password" name="password" placeholder="Admin Password" required>
-                        <span class="position-absolute top-50 end-0 translate-middle-y me-3 toggle-password" onclick="togglePassword('admin_password', this)">
-                            <i class="bi bi-eye"></i>
-                        </span>
-                    </div>
-
-                    <button type="submit" class="btn btn-info w-100 d-block">
-                        Admin Login
-                    </button>
-                </form>
+            <div class="mb-4 position-relative">
+                <input type="password" class="form-control pe-5" id="password" name="password" placeholder="Password" required>
+                <span class="position-absolute top-50 end-0 translate-middle-y me-3 toggle-password" onclick="togglePassword('password', this)">
+                    <i class="bi bi-eye"></i>
+                </span>
             </div>
 
-        </div>
+            <button type="submit" class="btn btn-primary w-100 d-block">
+                Login
+            </button>
+        </form>
     </div>
 
     <!-- Switch Button -->
@@ -341,7 +260,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 </div>
 
-<!-- Bootstrap JS needed for Tabs -->
+<!-- Bootstrap JS needed for tooltips/modals if used later -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>

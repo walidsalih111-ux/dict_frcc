@@ -1,4 +1,3 @@
-
 <?php
 session_start();
 
@@ -73,7 +72,7 @@ try {
 
     // 3. Get Employees by Gender
     $stmt = $pdo->query("SELECT gender, COUNT(emp_id) as count FROM employees GROUP BY gender");
-    $genderData = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $sexData = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     // 4. Get Employees by Status
     $stmt = $pdo->query("SELECT status, COUNT(emp_id) as count FROM employees GROUP BY status");
@@ -101,7 +100,7 @@ try {
     // If DB fails to connect, fallback to empty data to prevent page breaking
     $totalEmployees = 0;
     $departmentsData = [];
-    $genderData = [];
+    $sexData = [];
     $statusData = [];
     $areaData = [];
     $compliantCount = 0;
@@ -113,8 +112,8 @@ try {
 $deptLabels = json_encode(array_column($departmentsData, 'department'));
 $deptCounts = json_encode(array_column($departmentsData, 'count'));
 
-$genderLabels = json_encode(array_column($genderData, 'gender'));
-$genderCounts = json_encode(array_column($genderData, 'count'));
+$sexLabels = json_encode(array_column($sexData, 'gender'));
+$sexCounts = json_encode(array_column($sexData, 'count'));
 
 $statusLabels = json_encode(array_column($statusData, 'status'));
 $statusCounts = json_encode(array_column($statusData, 'count'));
@@ -294,7 +293,7 @@ $areaCounts = json_encode(array_column($areaData, 'count'));
             <div class="col-lg-8">
                 <div class="ibox ">
                     <div class="ibox-title">
-                        <h5>Employees by Department</h5>
+                        <h5>Field Offices</h5>
                     </div>
                     <div class="ibox-content">
                         <div style="position: relative; height: 300px; width: 100%;">
@@ -304,53 +303,6 @@ $areaCounts = json_encode(array_column($areaData, 'count'));
                 </div>
             </div>
 
-            <div class="col-lg-4">
-                <div class="ibox ">
-                    <div class="ibox-title">
-                        <h5>Gender Distribution</h5>
-                    </div>
-                    <div class="ibox-content">
-                        <div style="position: relative; height: 300px; width: 100%;">
-                            <canvas id="genderDoughnutChart"></canvas>
-                        </div>
-                    </div>
-                </div>
-            </div>
-          </div>
-
-          <div class="row">
-            <!-- Area of Assignment Chart -->
-            <div class="col-lg-6">
-                <div class="ibox ">
-                    <div class="ibox-title">
-                        <h5>Area of Assignment</h5>
-                    </div>
-                    <div class="ibox-content">
-                        <div style="position: relative; height: 300px; width: 100%;">
-                            <canvas id="areaBarChart"></canvas>
-                        </div>
-                    </div>
-                </div>
-            </div>
-          
-            <!-- Employment Status Pie Chart -->
-            <div class="col-lg-6">
-                <div class="ibox ">
-                    <div class="ibox-title">
-                        <h5>Employment Status</h5>
-                    </div>
-                    <div class="ibox-content">
-                        <div style="position: relative; height: 300px; width: 100%;">
-                            <canvas id="statusPieChart"></canvas>
-                        </div>
-                    </div>
-                </div>
-            </div>
-          </div>
-
-        </div>
-        
-      </div>
       
       <div id="right-sidebar">
         </div>
@@ -411,18 +363,18 @@ $areaCounts = json_encode(array_column($areaData, 'count'));
       $(document).ready(function () {
           
         // 1. Department Bar Chart Configuration (Match index green)
-        var deptLabels = <?php echo $deptLabels ?: '[]'; ?>;
+        var deptLabels = ["ZDN", "ZDS", "ZSP", "ZC", "BAS", "SUL", "TW"];
         var deptCounts = <?php echo $deptCounts ?: '[]'; ?>;
         
         var barData = {
-            labels: deptLabels.length > 0 ? deptLabels : ["No Data"],
+            labels: deptLabels,
             datasets: [{
                 label: "Number of Employees",
                 backgroundColor: "rgba(28, 200, 138, 0.6)", // Match #1cc88a
                 borderColor: "#1cc88a",
                 borderWidth: 2,
                 maxBarThickness: 80,
-                data: deptCounts.length > 0 ? deptCounts : [0]
+                data: deptCounts.length > 0 ? deptCounts : [0,0,0,0,0,0,0]
             }]
         };
 
@@ -431,79 +383,16 @@ $areaCounts = json_encode(array_column($areaData, 'count'));
             maintainAspectRatio: false,
             legend: { display: false },
             scales: {
-                yAxes: [{ ticks: { beginAtZero: true } }]
+                xAxes: [{ ticks: { beginAtZero: true } }],
+                yAxes: [{}]
             }
         };
 
         var ctxBar = document.getElementById("departmentBarChart").getContext("2d");
-        new Chart(ctxBar, { type: "bar", data: barData, options: barOptions });
+        new Chart(ctxBar, { type: "horizontalBar", data: barData, options: barOptions });
 
-        // 2. Gender Doughnut Chart Configuration (Mixed Theme Colors)
-        var genderLabels = <?php echo $genderLabels ?: '[]'; ?>;
-        var genderCounts = <?php echo $genderCounts ?: '[]'; ?>;
-        
-        var doughnutData = {
-            labels: genderLabels.length > 0 ? genderLabels : ["No Data"],
-            datasets: [{
-                data: genderCounts.length > 0 ? genderCounts : [0],
-                backgroundColor: ["#1cc88a", "#4e73df", "#36b9cc", "#e74a3b"],
-                borderWidth: 0
-            }]
-        };
-        var doughnutOptions = { 
-            responsive: true,
-            maintainAspectRatio: false,
-            cutoutPercentage: 70
-        };
-        var ctxDoughnut = document.getElementById("genderDoughnutChart").getContext("2d");
-        new Chart(ctxDoughnut, { type: "doughnut", data: doughnutData, options: doughnutOptions });
 
-        // 3. Area of Assignment Bar Chart
-        var areaLabels = <?php echo $areaLabels ?: '[]'; ?>;
-        var areaCounts = <?php echo $areaCounts ?: '[]'; ?>;
-        
-        var areaBarData = {
-            labels: areaLabels.length > 0 ? areaLabels : ["No Data"],
-            datasets: [{
-                label: "Number of Employees",
-                backgroundColor: "rgba(78, 115, 223, 0.6)", // Match #4e73df (blue theme)
-                borderColor: "#4e73df",
-                borderWidth: 2,
-                maxBarThickness: 60,
-                data: areaCounts.length > 0 ? areaCounts : [0]
-            }]
-        };
-
-        var areaBarOptions = {
-            responsive: true,
-            maintainAspectRatio: false,
-            legend: { display: false },
-            scales: {
-                yAxes: [{ ticks: { beginAtZero: true } }]
-            }
-        };
-
-        var ctxArea = document.getElementById("areaBarChart").getContext("2d");
-        new Chart(ctxArea, { type: "bar", data: areaBarData, options: areaBarOptions });
-
-        // 4. Status Pie Chart Configuration (Mixed Theme Colors)
-        var statusLabels = <?php echo $statusLabels ?: '[]'; ?>;
-        var statusCounts = <?php echo $statusCounts ?: '[]'; ?>;
-
-        var pieData = {
-            labels: statusLabels.length > 0 ? statusLabels : ["No Data"],
-            datasets: [{
-                data: statusCounts.length > 0 ? statusCounts : [0],
-                backgroundColor: ["#f6c23e", "#4e73df", "#1cc88a", "#e74a3b"],
-                borderWidth: 0
-            }]
-        };
-        var pieOptions = { 
-            responsive: true,
-            maintainAspectRatio: false 
-        };
-        var ctxPie = document.getElementById("statusPieChart").getContext("2d");
-        new Chart(ctxPie, { type: "pie", data: pieData, options: pieOptions });
+       
         
         // 5. Clickable Compliance Cards
         $('.ibox.clickable').on('click', function () {
