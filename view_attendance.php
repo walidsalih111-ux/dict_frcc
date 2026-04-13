@@ -231,13 +231,13 @@ if (isset($_POST['action']) && $_POST['action'] === 'fetch_date_attendance') {
 
                 const employeeData = [
                     counter++,
-                    { content: '', isChecked: isWithId },          // ID
-                    { content: '', isChecked: isAttire },          // Properattire
                     nameCell.find('.pdf-full-name').text().trim(), // COMPLETE NAME
                     { content: '', isChecked: isM },               // M
                     { content: '', isChecked: isF },               // F
                     cells.eq(2).text().trim(),                     // DESIGNATION
-                    nameCell.find('.pdf-division').text().trim()   // DIVISION
+                    nameCell.find('.pdf-division').text().trim(),  // DIVISION
+                    { content: '', isChecked: isWithId },          // ID
+                    { content: '', isChecked: isAttire }           // Properattire
                 ];
                 dataRows.push(employeeData);
             });
@@ -308,12 +308,12 @@ if (isset($_POST['action']) && $_POST['action'] === 'fetch_date_attendance') {
                 head: [
                     [
                         { content: '', rowSpan: 2 },
-                        { content: 'ID', rowSpan: 2 },
-                        { content: 'Properattire', rowSpan: 2 },
                         { content: '', rowSpan: 2 }, // COMPLETE NAME (drawn manually)
                         { content: 'SEX', colSpan: 2 }, 
                         { content: 'DESIGNATION', rowSpan: 2 },
-                        { content: 'DIVISION', rowSpan: 2 }
+                        { content: 'DIVISION', rowSpan: 2 },
+                        { content: 'ID', rowSpan: 2 },
+                        { content: 'Properattire', rowSpan: 2 }
                     ],
                     [
                         'M', 'F'
@@ -322,17 +322,17 @@ if (isset($_POST['action']) && $_POST['action'] === 'fetch_date_attendance') {
                 body: dataRows,
                 columnStyles: {
                     0: { halign: 'center', fontStyle: 'bold', cellWidth: 25 },
-                    1: { halign: 'center', cellWidth: pageWidth * 0.05 }, // ID
-                    2: { halign: 'center', cellWidth: pageWidth * 0.08 }, // Properattire
-                    3: { minWidth: pageWidth * 0.25 }, // COMPLETE NAME
-                    4: { halign: 'center', cellWidth: 25 }, // M
-                    5: { halign: 'center', cellWidth: 25 }, // F
-                    6: { halign: 'center', minWidth: pageWidth * 0.15 }, // DESIGNATION
-                    7: { halign: 'center', minWidth: pageWidth * 0.15 }, // DIVISION
+                    1: { minWidth: pageWidth * 0.25 }, // COMPLETE NAME
+                    2: { halign: 'center', cellWidth: 25 }, // M
+                    3: { halign: 'center', cellWidth: 25 }, // F
+                    4: { halign: 'center', minWidth: pageWidth * 0.15 }, // DESIGNATION
+                    5: { halign: 'center', minWidth: pageWidth * 0.15 }, // DIVISION
+                    6: { halign: 'center', cellWidth: pageWidth * 0.05 }, // ID
+                    7: { halign: 'center', cellWidth: pageWidth * 0.08 }, // Properattire
                 },
                 didDrawCell: function (data) {
                     const doc = data.doc;
-                    if (data.section === 'head' && data.column.index === 3 && data.row.index === 0) {
+                    if (data.section === 'head' && data.column.index === 1 && data.row.index === 0) {
                         const cell = data.cell;
                         doc.setFontSize(6); doc.setFont('times', 'bold');
                         doc.text('COMPLETE NAME', cell.x + cell.width / 2, cell.y + 12, { align: 'center' });
@@ -340,8 +340,8 @@ if (isset($_POST['action']) && $_POST['action'] === 'fetch_date_attendance') {
                         doc.text('(Firstname, M.I., Surname)', cell.x + cell.width / 2, cell.y + 19, { align: 'center' });
                     }
                     
-                    // Draw Checkboxes for ID, Properattire, M, F
-                    if (data.section === 'body' && (data.column.index === 1 || data.column.index === 2 || data.column.index === 4 || data.column.index === 5)) {
+                    // Draw Checkboxes for M, F, ID, Properattire
+                    if (data.section === 'body' && (data.column.index === 2 || data.column.index === 3 || data.column.index === 6 || data.column.index === 7)) {
                         const rawData = data.cell.raw;
                         const isChecked = rawData && rawData.isChecked;
                         
