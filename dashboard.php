@@ -11,13 +11,11 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
 include 'connect.php';
 
 if (!$pdo) {
-// ... rest of your code remains exactly the same
     die('Database connection failed: ' . ($db_error ?? 'Unknown error'));
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'fetch_compliance_list') {
     $status = isset($_POST['status']) && $_POST['status'] === '1' ? 1 : 0;
-    $selectedArea = isset($_POST['area']) ? $_POST['area'] : 'All';
     $mondayDate = date('Y-m-d', strtotime(date('l') === 'Monday' ? 'today' : 'last Monday'));
     
     if (!$pdo) {
@@ -34,17 +32,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             FROM attendance_record a
             JOIN employees e ON a.emp_id = e.emp_id
             WHERE DATE(a.time_recorded) = :mondayDate
-              AND a.is_compliant = :status";
-        if ($selectedArea !== 'All') {
-            $query .= " AND e.area_of_assignment = :area";
-        }
-        $query .= " GROUP BY e.emp_id, e.full
+              AND a.is_compliant = :status
+            GROUP BY e.emp_id, e.full
             ORDER BY time_recorded DESC";
         $stmt = $pdo->prepare($query);
         $params = ['status' => $status, 'mondayDate' => $mondayDate];
-        if ($selectedArea !== 'All') {
-            $params['area'] = $selectedArea;
-        }
         $stmt->execute($params);
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
@@ -71,68 +63,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 }
 
 try {
-    $selectedArea = isset($_GET['area']) ? $_GET['area'] : 'All';
-
     // 1. Get Total Employees
     $totalEmployeesQuery = "SELECT COUNT(emp_id) FROM employees";
-    if ($selectedArea !== 'All') {
-        $totalEmployeesQuery .= " WHERE area_of_assignment = ?";
-    }
     $stmt = $pdo->prepare($totalEmployeesQuery);
-    if ($selectedArea !== 'All') {
-        $stmt->execute([$selectedArea]);
-    } else {
-        $stmt->execute();
-    }
+    $stmt->execute();
     $totalEmployees = $stmt->fetchColumn();
 
     // 2. Get Employees per Department
-    $deptQuery = "SELECT department, COUNT(emp_id) as count FROM employees";
-    if ($selectedArea !== 'All') {
-        $deptQuery .= " WHERE area_of_assignment = ? GROUP BY department";
-    } else {
-        $deptQuery .= " GROUP BY department";
-    }
+    $deptQuery = "SELECT department, COUNT(emp_id) as count FROM employees GROUP BY department";
     $stmt = $pdo->prepare($deptQuery);
-    if ($selectedArea !== 'All') {
-        $stmt->execute([$selectedArea]);
-    } else {
-        $stmt->execute();
-    }
+    $stmt->execute();
     $departmentsData = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     // 3. Get Employees by Gender
-    $sexQuery = "SELECT gender, COUNT(emp_id) as count FROM employees";
-    if ($selectedArea !== 'All') {
-        $sexQuery .= " WHERE area_of_assignment = ? GROUP BY gender";
-    } else {
-        $sexQuery .= " GROUP BY gender";
-    }
+    $sexQuery = "SELECT gender, COUNT(emp_id) as count FROM employees GROUP BY gender";
     $stmt = $pdo->prepare($sexQuery);
-    if ($selectedArea !== 'All') {
-        $stmt->execute([$selectedArea]);
-    } else {
-        $stmt->execute();
-    }
+    $stmt->execute();
     $sexData = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     // 4. Get Employees by Status
-    $statusQuery = "SELECT status, COUNT(emp_id) as count FROM employees";
-    if ($selectedArea !== 'All') {
-        $statusQuery .= " WHERE area_of_assignment = ? GROUP BY status";
-    } else {
-        $statusQuery .= " GROUP BY status";
-    }
+    $statusQuery = "SELECT status, COUNT(emp_id) as count FROM employees GROUP BY status";
     $stmt = $pdo->prepare($statusQuery);
-    if ($selectedArea !== 'All') {
-        $stmt->execute([$selectedArea]);
-    } else {
-        $stmt->execute();
-    }
+    $stmt->execute();
     $statusData = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    // 5. Get Employees by Area of Assignment
-    $stmt = $pdo->query("SELECT area_of_assignment, COUNT(emp_id) as count FROM employees GROUP BY area_of_assignment");
+    // 5. Get Employees by Area of Assignment (Filtered to exclude invalid CSV header rows)
+    $stmt = $pdo->query("SELECT area_of_assignment, COUNT(emp_id) as count FROM employees WHERE area_of_assignment != 'area_of_assignment' AND TRIM(area_of_assignment) != '' AND area_of_assignment IS NOT NULL GROUP BY area_of_assignment");
     $areaData = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     // 6. Get Compliant & Non-Compliant for This Week (Monday Only)
@@ -141,49 +97,26 @@ try {
 
     // Compliant Employees (Monday only)
     $compliantQuery = "SELECT COUNT(DISTINCT a.emp_id) FROM attendance_record a JOIN employees e ON a.emp_id = e.emp_id WHERE a.is_compliant = 1 AND DATE(a.time_recorded) = ?";
-    if ($selectedArea !== 'All') {
-        $compliantQuery .= " AND e.area_of_assignment = ?";
-    }
     $stmt = $pdo->prepare($compliantQuery);
-    if ($selectedArea !== 'All') {
-        $stmt->execute([$mondayDate, $selectedArea]);
-    } else {
-        $stmt->execute([$mondayDate]);
-    }
+    $stmt->execute([$mondayDate]);
     $compliantCount = $stmt->fetchColumn();
 
     // Non-Compliant Employees (Monday only)
     $nonCompliantQuery = "SELECT COUNT(DISTINCT a.emp_id) FROM attendance_record a JOIN employees e ON a.emp_id = e.emp_id WHERE a.is_compliant = 0 AND DATE(a.time_recorded) = ?";
-    if ($selectedArea !== 'All') {
-        $nonCompliantQuery .= " AND e.area_of_assignment = ?";
-    }
     $stmt = $pdo->prepare($nonCompliantQuery);
-    if ($selectedArea !== 'All') {
-        $stmt->execute([$mondayDate, $selectedArea]);
-    } else {
-        $stmt->execute([$mondayDate]);
-    }
+    $stmt->execute([$mondayDate]);
     $nonCompliantCount = $stmt->fetchColumn();
 
-    // Prepare chart data based on filter
-    if ($selectedArea === 'All') {
-        // Show compliant employees per area
-        $chartLabels = array_column($areaData, 'area_of_assignment');
-        $chartData = [];
-        foreach ($areaData as $area) {
-            $stmt = $pdo->prepare("SELECT COUNT(DISTINCT a.emp_id) FROM attendance_record a JOIN employees e ON a.emp_id = e.emp_id WHERE a.is_compliant = 1 AND DATE(a.time_recorded) = ? AND e.area_of_assignment = ?");
-            $stmt->execute([$mondayDate, $area['area_of_assignment']]);
-            $chartData[] = $stmt->fetchColumn();
-        }
-        $chartLabel = 'Compliant Employees';
-        $chartTitle = 'Compliant Employees by Area';
-    } else {
-        // Show compliant and non-compliant for the selected area
-        $chartLabels = ['Compliant', 'Non-Compliant'];
-        $chartData = [$compliantCount, $nonCompliantCount];
-        $chartLabel = 'Employees';
-        $chartTitle = 'Compliance in ' . htmlspecialchars($selectedArea);
+    // Show compliant employees per area for Bar Chart
+    $chartLabels = array_column($areaData, 'area_of_assignment');
+    $chartData = [];
+    foreach ($areaData as $area) {
+        $stmt = $pdo->prepare("SELECT COUNT(DISTINCT a.emp_id) FROM attendance_record a JOIN employees e ON a.emp_id = e.emp_id WHERE a.is_compliant = 1 AND DATE(a.time_recorded) = ? AND e.area_of_assignment = ?");
+        $stmt->execute([$mondayDate, $area['area_of_assignment']]);
+        $chartData[] = $stmt->fetchColumn();
     }
+    $chartLabel = 'Compliant Employees';
+    $chartTitle = 'Compliant Employees by Area';
 
 } catch (PDOException $e) {
     // If DB fails to connect, fallback to empty data to prevent page breaking
@@ -218,6 +151,10 @@ $chartLabelsJson = json_encode($chartLabels);
 $chartDataJson = json_encode($chartData);
 $chartLabelJson = json_encode($chartLabel);
 $chartTitleJson = json_encode($chartTitle);
+
+// Pie chart specific data
+$pieDataJson = json_encode([$compliantCount, $nonCompliantCount]);
+
 ?>
 <!doctype html>
 <html lang="en">
@@ -329,22 +266,7 @@ $chartTitleJson = json_encode($chartTitle);
           </div>
           <?php endif; ?>
 
-          <div class="row mb-3">
-            <div class="col-md-4">
-              <form method="GET" id="filterForm">
-                <label for="area" class="form-label">Filter by Area of Assignment:</label>
-                <select name="area" id="area" class="form-control">
-                  <option value="All">All</option>
-                  <?php foreach ($areaData as $area): ?>
-                  <option value="<?php echo htmlspecialchars($area['area_of_assignment']); ?>" <?php if ($selectedArea === $area['area_of_assignment']) echo 'selected'; ?>><?php echo htmlspecialchars($area['area_of_assignment']); ?></option>
-                  <?php endforeach; ?>
-                </select>
-              </form>
-            </div>
-          </div>
-
           <div class="row">
-            
             <div class="col-lg-4">
                 <div class="ibox clickable" onclick="window.location.href='data_table.php'" title="View Data Table">
                     <div class="ibox-title">
@@ -389,7 +311,8 @@ $chartTitleJson = json_encode($chartTitle);
           </div>
 
           <div class="row">
-            <div class="col-lg-8">
+            <!-- Compliant Employees by Area Chart -->
+            <div class="col-lg-6">
                 <div class="ibox ">
                     <div class="ibox-title">
                         <h5><?php echo $chartTitle; ?></h5>
@@ -402,7 +325,21 @@ $chartTitleJson = json_encode($chartTitle);
                 </div>
             </div>
 
-      
+            <!-- Compliant vs Non-Compliant Pie Chart -->
+            <div class="col-lg-6">
+                <div class="ibox ">
+                    <div class="ibox-title">
+                        <h5>Overall Compliance Breakdown</h5>
+                    </div>
+                    <div class="ibox-content">
+                        <div style="position: relative; height: 300px; width: 100%;">
+                            <canvas id="compliancePieChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+          </div>
+
       <div id="right-sidebar">
         </div>
     </div>
@@ -461,12 +398,7 @@ $chartTitleJson = json_encode($chartTitle);
     <script>
       $(document).ready(function () {
           
-        // Submit filter form on change
-        $('#area').on('change', function() {
-            $('#filterForm').submit();
-        });
-
-        // 1. Chart Configuration
+        // 1. Horizontal Bar Chart Configuration
         var chartLabels = <?php echo $chartLabelsJson; ?>;
         var chartData = <?php echo $chartDataJson; ?>;
         var chartLabel = <?php echo $chartLabelJson; ?>;
@@ -496,10 +428,28 @@ $chartTitleJson = json_encode($chartTitle);
         var ctxBar = document.getElementById("departmentBarChart").getContext("2d");
         new Chart(ctxBar, { type: "horizontalBar", data: barData, options: barOptions });
 
+        // 2. Pie Chart Configuration (Compliant vs Non-Compliant)
+        var pieData = {
+            labels: ["Compliant", "Non-Compliant"],
+            datasets: [{
+                data: <?php echo $pieDataJson; ?>,
+                backgroundColor: ["#1cc88a", "#e74a3b"],
+                hoverBackgroundColor: ["#17a673", "#e02d1b"]
+            }]
+        };
 
-       
+        var pieOptions = {
+            responsive: true,
+            maintainAspectRatio: false,
+            legend: {
+                position: 'bottom'
+            }
+        };
+
+        var ctxPie = document.getElementById("compliancePieChart").getContext("2d");
+        new Chart(ctxPie, { type: "pie", data: pieData, options: pieOptions });
         
-        // 5. Clickable Compliance Cards
+        // 3. Clickable Compliance Cards (Modal Fetch)
         $('.ibox.clickable[data-status]').on('click', function () {
             var status = $(this).data('status');
             var isCompliant = status === 1 || status === '1';
@@ -515,8 +465,7 @@ $chartTitleJson = json_encode($chartTitle);
                 method: 'POST',
                 data: {
                     action: 'fetch_compliance_list',
-                    status: status,
-                    area: '<?php echo addslashes($selectedArea); ?>'
+                    status: status
                 },
                 success: function(response) {
                     $('#compliance_list_body').html(response);
@@ -527,7 +476,7 @@ $chartTitleJson = json_encode($chartTitle);
             });
         });
 
-        // 6. SweetAlert Logout Confirmation
+        // 4. SweetAlert Logout Confirmation
         $('#logout-btn').on('click', function(e) {
             e.preventDefault(); 
             Swal.fire({

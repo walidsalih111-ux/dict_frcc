@@ -231,6 +231,7 @@ $role_query = $conn->query("SELECT DISTINCT role FROM user_account WHERE role IS
 
                                                     // Determine Role Badge Color
                                                     $roleBadge = "badge-secondary"; // default if no account
+                                                    $roleText = "None"; // <-- FIX: Initialize variable with a default value
                                                     
                                                     if(isset($row['role'])) {
                                                         if(strtolower($row['role']) == 'admin') {
