@@ -22,6 +22,9 @@ include 'connect.php';
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
     <link href="https://cdn.datatables.net/1.10.24/css/dataTables.bootstrap4.min.css" rel="stylesheet">
     <link href="https://cdn.datatables.net/responsive/2.2.7/css/responsive.bootstrap4.min.css" rel="stylesheet">
+    
+    <!-- Flatpickr for Monday-only Calendar -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
 
     <link href="css/animate.css" rel="stylesheet" />
     <link href="css/style.css" rel="stylesheet" />
@@ -77,12 +80,25 @@ include 'connect.php';
                     </div>
                     <div class="ibox-content">
 
+                        <!-- Custom Filter Template (Hidden initially, moved by JS) -->
+                        <div id="custom-date-filter" style="display: none;">
+                            <div class="d-flex align-items-center justify-content-md-end">
+                                <label for="mondaySearch" class="font-weight-bold mr-2 mb-0" style="white-space: nowrap;">Filter (Mondays Only):</label>
+                                <div class="input-group input-group-sm mr-2" style="max-width: 200px;">
+                                    <div class="input-group-prepend">
+                                        <span class="input-group-text"><i class="fa fa-calendar"></i></span>
+                                    </div>
+                                    <input type="text" id="mondaySearch" class="form-control" placeholder="Select Monday..." style="background-color: white;">
+                                </div>
+                                <button id="clearDate" class="btn btn-warning btn-sm" title="Clear Filter"><i class="fa fa-times"></i></button>
+                            </div>
+                        </div>
+
                         <div class="table-responsive mt-3">
                             <table class="table table-striped table-bordered table-hover dataTables-dates" >
                             <thead>
                             <tr>
                                 <th>Date of Flag Ceremony</th>
-                                <th>Day</th>
                                 <th>Total Attendees</th>
                                 <th class="text-center">Action</th>
                             </tr>
@@ -91,8 +107,9 @@ include 'connect.php';
                             <?php
                             if (isset($pdo)) {
                                 try {
+                                    // Use COUNT(DISTINCT emp_id) because one employee might have multiple logs (e.g. In/Out, with/without ID)
                                     $stmt = $pdo->query("
-                                        SELECT DATE(time_recorded) as ceremony_date, COUNT(*) as attendee_count 
+                                        SELECT DATE(time_recorded) as ceremony_date, COUNT(DISTINCT emp_id) as attendee_count 
                                         FROM attendance_record 
                                         GROUP BY DATE(time_recorded) 
                                         ORDER BY ceremony_date DESC
@@ -101,11 +118,10 @@ include 'connect.php';
                                     while ($row = $stmt->fetch()) {
                                         $dateObj = new DateTime($row['ceremony_date']);
                                         $formattedDate = $dateObj->format('F d, Y');
-                                        $dayOfWeek = $dateObj->format('l');
 
                                         echo "<tr class='gradeX'>";
+                                        // Invisible span added for precise Datatable Searching based on raw date string
                                         echo "<td><span style='display:none;'>".$row['ceremony_date']."</span>" . $formattedDate . "</td>";
-                                        echo "<td>" . $dayOfWeek . "</td>";
                                         echo "<td><span class='badge badge-primary'>" . htmlspecialchars($row['attendee_count']) . " Employees</span></td>";
                                         echo "<td class='text-center'>
                                                 <button class='btn btn-success btn-sm btn-view-date' title='View Attendees'
@@ -148,6 +164,9 @@ include 'connect.php';
     <script src="https://cdn.datatables.net/responsive/2.2.7/js/dataTables.responsive.min.js"></script>
     <script src="https://cdn.datatables.net/responsive/2.2.7/js/responsive.bootstrap4.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
+    <!-- Flatpickr Script -->
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 
     <script src="js/inspinia.js"></script>
     <script src="js/plugins/pace/pace.min.js"></script>
@@ -158,9 +177,38 @@ include 'connect.php';
                 pageLength: 25,
                 responsive: true,
                 order: [[0, 'desc']],
-                language: { search: "_INPUT_", searchPlaceholder: "Search dates..." }
+                // Custom DOM structure to completely remove the default search ('f') and create a placeholder for our filter
+                dom: "<'row mb-2'<'col-sm-12 col-md-6'l><'col-sm-12 col-md-6 custom-filter-wrapper'>>" +
+                     "<'row'<'col-sm-12'tr>>" +
+                     "<'row mt-2'<'col-sm-12 col-md-5'i><'col-sm-12 col-md-7'p>>"
             });
 
+            // Inject the custom calendar filter into the DataTables top-right section
+            $('#custom-date-filter').css('display', 'block').appendTo('.custom-filter-wrapper');
+
+            // Initialize Flatpickr for Monday search
+            var calendarSearch = flatpickr("#mondaySearch", {
+                disable: [
+                    function(date) {
+                        // Return true to disable specific days. 
+                        // Disable any day that is NOT a Monday (getDay() !== 1)
+                        return (date.getDay() !== 1);
+                    }
+                ],
+                onChange: function(selectedDates, dateStr, instance) {
+                    // When a valid Monday is selected, filter the DataTable on the 1st column 
+                    // which contains the invisible raw date string inside a span
+                    table.column(0).search(dateStr).draw();
+                }
+            });
+
+            // Clear Date Filter
+            $('#clearDate').click(function(){
+                calendarSearch.clear();
+                table.column(0).search('').draw();
+            });
+
+            // View Attendees functionality
             $('.dataTables-dates tbody').on('click', '.btn-view-date', function () {
                 var btn = $(this);
                 var rawDate = btn.data('date');

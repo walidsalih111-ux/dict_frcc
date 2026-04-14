@@ -1,7 +1,7 @@
 $(document).ready(function() {
     
     // Inject CSS directly to guarantee SweetAlert2 is above any Bootstrap/Inspinia modal
-    $('<style>')
+   $('<style>')
         .prop('type', 'text/css')
         .html('.swal2-container, .swal2-container.swal2-backdrop-show { z-index: 999999 !important; }')
         .appendTo('head');
@@ -9,13 +9,15 @@ $(document).ready(function() {
     // ==========================================
     // 1. DELETE CONFIRMATION ALERT
     // ==========================================
-    $('.delete-btn').on('click', function(e) {
+    $(document).on('click', '.delete-btn', function(e) {
         e.preventDefault(); // Prevent accidental navigation
-        var empId = $(this).data('id'); // Get Employee ID from button data attribute
+        var empId = $(this).data('id'); // Get the employee ID from data-id attribute
+        var row = $(this).closest('tr'); // Get the table row so we can remove it later
 
+        // Show SweetAlert2 confirmation
         Swal.fire({
             title: 'Are you sure?',
-            text: "You are about to delete Employee ID: " + empId + ". This action cannot be undone!",
+            text: "You won't be able to revert this! This will also delete their user account.",
             icon: 'warning',
             showCancelButton: true,
             confirmButtonColor: '#e74a3b', // Matches btn-danger
@@ -23,9 +25,38 @@ $(document).ready(function() {
             confirmButtonText: 'Yes, delete it!'
         }).then((result) => {
             if (result.isConfirmed) {
-                // If confirmed, redirect to your PHP delete processing script
-                // Make sure you create a 'process_delete.php' file to handle this
-                window.location.href = 'process_delete.php?id=' + empId;
+                // Send the POST request via AJAX
+                $.ajax({
+                    url: 'process_delete.php',
+                    type: 'POST',
+                    data: { id: empId },
+                    dataType: 'json',
+                    success: function(response) {
+                        if (response.status === 'success') {
+                            Swal.fire(
+                                'Deleted!',
+                                response.message,
+                                'success'
+                            );
+                            // Remove the row from the DataTable dynamically
+                            var table = $('.dataTables-example').DataTable();
+                            table.row(row).remove().draw(false);
+                        } else {
+                            Swal.fire(
+                                'Error!',
+                                response.message,
+                                'error'
+                            );
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        Swal.fire(
+                            'Error!',
+                            'Something went wrong with the request.',
+                            'error'
+                        );
+                    }
+                });
             }
         });
     });

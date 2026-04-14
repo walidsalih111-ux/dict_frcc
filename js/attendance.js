@@ -48,12 +48,12 @@ function capturePhoto() {
         html: `
             <div style="font-size: 0.95rem; color: #676a6c; margin-bottom: 15px;">
                 Please align your face and upper body within the frame.<br>
-                Auto-capturing in <strong id="countdown-text" style="color: #ed5565;">5</strong> seconds...
+                Auto-capturing in <strong id="countdown-text" style="color: #ed5565;">3</strong> seconds...
             </div>
             <div id="camera-container" style="position: relative; width: 100%; max-width: 550px; margin: 0 auto; overflow: hidden; border-radius: 4px; background: #000; min-height: 350px; display: flex; align-items: center; justify-content: center;">
                 <video id="camera-stream" width="100%" autoplay playsinline style="transform: scaleX(-1); display: block;"></video>
                 <div class="camera-overlay" id="camera-overlay"></div>
-                <div class="countdown-timer" id="countdown-display">5</div>
+                <div class="countdown-timer" id="countdown-display">3</div>
             </div>
             <canvas id="camera-canvas" style="display: none;"></canvas>
         `,
@@ -83,8 +83,8 @@ function capturePhoto() {
                         video.onloadedmetadata = () => {
                             Swal.enableButtons();
                             
-                            // Start the 5-second countdown
-                            let timeLeft = 5;
+                            // Start the 3-second countdown
+                            let timeLeft = 3;
                             captureInterval = setInterval(() => {
                                 timeLeft--;
                                 if (timeLeft > 0) {

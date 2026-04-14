@@ -16,6 +16,7 @@ if (!$pdo) {
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'fetch_compliance_list') {
     $status = isset($_POST['status']) && $_POST['status'] === '1' ? 1 : 0;
+    $area = isset($_POST['area']) ? $_POST['area'] : ''; // Fetch area filter from AJAX
     $mondayDate = date('Y-m-d', strtotime(date('l') === 'Monday' ? 'today' : 'last Monday'));
     
     if (!$pdo) {
@@ -32,11 +33,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             FROM attendance_record a
             JOIN employees e ON a.emp_id = e.emp_id
             WHERE DATE(a.time_recorded) = :mondayDate
-              AND a.is_compliant = :status
-            GROUP BY e.emp_id, e.full
-            ORDER BY time_recorded DESC";
-        $stmt = $pdo->prepare($query);
+              AND a.is_compliant = :status";
+              
         $params = ['status' => $status, 'mondayDate' => $mondayDate];
+        
+        // Apply area filter if selected
+        if ($area !== '') {
+            $query .= " AND e.area_of_assignment = :area";
+            $params['area'] = $area;
+        }
+
+        $query .= " GROUP BY e.emp_id, e.full ORDER BY time_recorded DESC";
+        
+        $stmt = $pdo->prepare($query);
         $stmt->execute($params);
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
@@ -62,7 +71,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     exit;
 }
 
+$allAreasList = [];
+$selectedArea = isset($_GET['area']) ? $_GET['area'] : '';
+
 try {
+    // 0. Fetch all distinct areas to populate the dropdown filter
+    $stmtAreas = $pdo->query("SELECT DISTINCT area_of_assignment FROM employees WHERE area_of_assignment != 'area_of_assignment' AND TRIM(area_of_assignment) != '' AND area_of_assignment IS NOT NULL ORDER BY area_of_assignment");
+    $allAreasList = $stmtAreas->fetchAll(PDO::FETCH_COLUMN);
+
     // 1. Get Total Employees
     $totalEmployeesQuery = "SELECT COUNT(emp_id) FROM employees";
     $stmt = $pdo->prepare($totalEmployeesQuery);
@@ -87,24 +103,41 @@ try {
     $stmt->execute();
     $statusData = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    // 5. Get Employees by Area of Assignment (Filtered to exclude invalid CSV header rows)
-    $stmt = $pdo->query("SELECT area_of_assignment, COUNT(emp_id) as count FROM employees WHERE area_of_assignment != 'area_of_assignment' AND TRIM(area_of_assignment) != '' AND area_of_assignment IS NOT NULL GROUP BY area_of_assignment");
+    // 5. Get Employees by Area of Assignment (Filtered)
+    $areaQuery = "SELECT area_of_assignment, COUNT(emp_id) as count FROM employees WHERE area_of_assignment != 'area_of_assignment' AND TRIM(area_of_assignment) != '' AND area_of_assignment IS NOT NULL";
+    if ($selectedArea) {
+        $areaQuery .= " AND area_of_assignment = :area";
+        $stmt = $pdo->prepare($areaQuery . " GROUP BY area_of_assignment");
+        $stmt->execute(['area' => $selectedArea]);
+    } else {
+        $stmt = $pdo->query($areaQuery . " GROUP BY area_of_assignment");
+    }
     $areaData = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     // 6. Get Compliant & Non-Compliant for This Week (Monday Only)
     // Find the date of the most recent Monday (or today if today is Monday)
     $mondayDate = date('Y-m-d', strtotime(date('l') === 'Monday' ? 'today' : 'last Monday'));
 
-    // Compliant Employees (Monday only)
-    $compliantQuery = "SELECT COUNT(DISTINCT a.emp_id) FROM attendance_record a JOIN employees e ON a.emp_id = e.emp_id WHERE a.is_compliant = 1 AND DATE(a.time_recorded) = ?";
+    // Compliant Employees (Monday only, Filtered by Area if applicable)
+    $compliantQuery = "SELECT COUNT(DISTINCT a.emp_id) FROM attendance_record a JOIN employees e ON a.emp_id = e.emp_id WHERE a.is_compliant = 1 AND DATE(a.time_recorded) = :date";
+    $compParams = ['date' => $mondayDate];
+    if ($selectedArea) {
+        $compliantQuery .= " AND e.area_of_assignment = :area";
+        $compParams['area'] = $selectedArea;
+    }
     $stmt = $pdo->prepare($compliantQuery);
-    $stmt->execute([$mondayDate]);
+    $stmt->execute($compParams);
     $compliantCount = $stmt->fetchColumn();
 
-    // Non-Compliant Employees (Monday only)
-    $nonCompliantQuery = "SELECT COUNT(DISTINCT a.emp_id) FROM attendance_record a JOIN employees e ON a.emp_id = e.emp_id WHERE a.is_compliant = 0 AND DATE(a.time_recorded) = ?";
+    // Non-Compliant Employees (Monday only, Filtered by Area if applicable)
+    $nonCompliantQuery = "SELECT COUNT(DISTINCT a.emp_id) FROM attendance_record a JOIN employees e ON a.emp_id = e.emp_id WHERE a.is_compliant = 0 AND DATE(a.time_recorded) = :date";
+    $nonCompParams = ['date' => $mondayDate];
+    if ($selectedArea) {
+        $nonCompliantQuery .= " AND e.area_of_assignment = :area";
+        $nonCompParams['area'] = $selectedArea;
+    }
     $stmt = $pdo->prepare($nonCompliantQuery);
-    $stmt->execute([$mondayDate]);
+    $stmt->execute($nonCompParams);
     $nonCompliantCount = $stmt->fetchColumn();
 
     // Show compliant employees per area for Bar Chart
@@ -116,7 +149,7 @@ try {
         $chartData[] = $stmt->fetchColumn();
     }
     $chartLabel = 'Compliant Employees';
-    $chartTitle = 'Compliant Employees by Area';
+    $chartTitle = 'Compliant Employees by Area' . ($selectedArea ? ' (' . htmlspecialchars($selectedArea) . ')' : '');
 
 } catch (PDOException $e) {
     // If DB fails to connect, fallback to empty data to prevent page breaking
@@ -266,11 +299,30 @@ $pieDataJson = json_encode([$compliantCount, $nonCompliantCount]);
           </div>
           <?php endif; ?>
 
+          <!-- ================= NEW AREA FILTER ROW (Yellow Line Area) ================= -->
+          <div class="row mb-3">
+              <div class="col-lg-12 d-flex justify-content-end">
+                  <form method="GET" action="dashboard.php" class="d-flex align-items-center bg-white px-3 py-2 rounded shadow-sm" style="border-radius: 20px !important;">
+                      <i class="fa fa-filter text-muted mr-2 me-2"></i>
+                      <label for="areaFilter" class="mr-2 me-2 mb-0 font-weight-bold text-dark" style="white-space: nowrap;">Filter by Area:</label>
+                      <select name="area" id="areaFilter" class="form-control border-0" style="outline: none; box-shadow: none; cursor: pointer; min-width: 180px; background-color: #f8f9fc; border-radius: 10px;" onchange="this.form.submit()">
+                          <option value="">All Areas</option>
+                          <?php foreach($allAreasList as $areaOption): ?>
+                              <option value="<?php echo htmlspecialchars($areaOption); ?>" <?php echo $selectedArea === $areaOption ? 'selected' : ''; ?>>
+                                  <?php echo htmlspecialchars($areaOption); ?>
+                              </option>
+                          <?php endforeach; ?>
+                      </select>
+                  </form>
+              </div>
+          </div>
+          <!-- ================= END FILTER ================= -->
+
           <div class="row">
             <div class="col-lg-4">
                 <div class="ibox clickable" onclick="window.location.href='data_table.php'" title="View Data Table">
                     <div class="ibox-title">
-                        <span class="badge bg-success float-end">Event</span>
+                        <span class="badge bg-success float-end float-right">Event</span>
                         <h5>Flag Raising Ceremony</h5>
                     </div>
                     <div class="ibox-content">
@@ -284,7 +336,7 @@ $pieDataJson = json_encode([$compliantCount, $nonCompliantCount]);
             <div class="col-lg-4">
                 <div class="ibox clickable" id="compliantCard" data-status="1">
                     <div class="ibox-title">
-                        <span class="badge bg-primary float-end">This Monday</span>
+                        <span class="badge bg-primary float-end float-right">This Monday</span>
                         <h5>Compliant</h5>
                     </div>
                     <div class="ibox-content">
@@ -298,7 +350,7 @@ $pieDataJson = json_encode([$compliantCount, $nonCompliantCount]);
             <div class="col-lg-4">
                 <div class="ibox clickable" id="nonCompliantCard" data-status="0">
                     <div class="ibox-title">
-                        <span class="badge bg-danger float-end">This Monday</span>
+                        <span class="badge bg-danger float-end float-right">This Monday</span>
                         <h5>Non-Compliant</h5>
                     </div>
                     <div class="ibox-content">
@@ -452,8 +504,16 @@ $pieDataJson = json_encode([$compliantCount, $nonCompliantCount]);
         // 3. Clickable Compliance Cards (Modal Fetch)
         $('.ibox.clickable[data-status]').on('click', function () {
             var status = $(this).data('status');
+            var selectedArea = $('#areaFilter').val() || ''; // Grab selected area for the modal query
+            
             var isCompliant = status === 1 || status === '1';
             var modalTitle = isCompliant ? 'Compliant Attendees This Monday' : 'Non-Compliant Attendees This Monday';
+            
+            // Append Area to title if filtered
+            if(selectedArea !== '') {
+                modalTitle += ' (' + selectedArea + ')';
+            }
+
             var loadingRow = '<tr><td colspan="5" class="text-center text-muted py-4"><i class="fa fa-spinner fa-spin fa-2x mb-2 d-block"></i><em>Loading list...</em></td></tr>';
 
             $('#complianceModalLabel').text(modalTitle);
@@ -465,7 +525,8 @@ $pieDataJson = json_encode([$compliantCount, $nonCompliantCount]);
                 method: 'POST',
                 data: {
                     action: 'fetch_compliance_list',
-                    status: status
+                    status: status,
+                    area: selectedArea // Send the selected area to filter the modal list
                 },
                 success: function(response) {
                     $('#compliance_list_body').html(response);

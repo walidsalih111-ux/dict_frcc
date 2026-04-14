@@ -10,23 +10,23 @@ Our goal is to support government operations by leveraging technology to enhance
 * Al-Raji J. Theng
 * Mohammad Salih S. Musa
 
-### Universidad de Zamboanga (UZ) Interns 2026 - Computer Engineering
+### Universidad de Zamboanga (UZ) Interns 2026 - BS Computer Engineering
 - MISS | DICT IX BASULTA
 
 
 
-Github Push command: 
-
+### Github Push all files command: 
 git add .
 git commit -m "Initial commit"
 git push -u origin main
 
-
-Github Push Specific file: 
-
+### Github Push Specific file: 
 git add <file_name>
 git commit -m "Initial commit"
 git push -u origin main
+
+### Git Clone Command
+git clone https://github.com/walidsalih111-ux/dict_frcc.git
 
 
 April 06, 2026 – Update
@@ -34,6 +34,3 @@ April 06, 2026 – Update
 - Fixed bugs
 - Recent attendance records will be added to the attendance checker page
 - Removed the login user; only the admin login page will remain
-
---png jpg hpij pdf
-jyyjygjg
