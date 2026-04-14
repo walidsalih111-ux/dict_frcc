@@ -73,7 +73,7 @@ if (isset($_SESSION['fullname']) && !empty($_SESSION['fullname'])) {
       </li>
 
       <li class="<?php echo (basename($_SERVER['PHP_SELF']) == 'data_table.php') ? 'active' : ''; ?>">
-        <a href="data_table.php"><i class="fa fa-table"></i> <span class="nav-label">Data Table</span></a>
+        <a href="data_table.php"><i class="fa fa-table"></i> <span class="nav-label">Flag Raising Ceremony</span></a>
       </li>
 
       <li class="<?php echo (basename($_SERVER['PHP_SELF']) == 'employee_management.php') ? 'active' : ''; ?>">
