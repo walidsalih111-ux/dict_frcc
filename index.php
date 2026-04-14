@@ -135,30 +135,7 @@ try {
     $db_error = "Database query failed: " . $e->getMessage();
 }
 
-// --- DATA TABLE PAGINATION & FETCHING ---
-// Define allowed limits and get current page/limit from URL
-$limit = isset($_GET['limit']) && in_array((int)$_GET['limit'], [10, 25, 50]) ? (int)$_GET['limit'] : 10;
-$page = isset($_GET['page']) && is_numeric($_GET['page']) && (int)$_GET['page'] > 0 ? (int)$_GET['page'] : 1;
-$offset = ($page - 1) * $limit;
-
-// Fetch total records for calculating pagination pages
-$countSql = "SELECT COUNT(*) FROM attendance_record a JOIN employees e ON a.emp_id = e.emp_id";
-$countStmt = $pdo->prepare($countSql);
-$countStmt->execute();
-$totalRecords = $countStmt->fetchColumn();
-$totalPages = ceil($totalRecords / $limit);
-
-// Fetch the attendance records across all employees
-$tableSql = "SELECT a.designation, a.with_id, a.is_asean, a.status, a.is_compliant, a.time_recorded, a.photo_path, 
-               e.full, e.area_of_assignment, e.department, e.unit 
-        FROM attendance_record a
-        JOIN employees e ON a.emp_id = e.emp_id
-        ORDER BY a.time_recorded DESC
-        LIMIT " . (int)$limit . " OFFSET " . (int)$offset;
-
-$tableStmt = $pdo->prepare($tableSql);
-$tableStmt->execute();
-$attendance_records = $tableStmt->fetchAll(PDO::FETCH_ASSOC);
+// Note: Table fetching and pagination logic has been moved to recent_records.php
 
 ?>
 <!DOCTYPE html>
@@ -196,18 +173,18 @@ $attendance_records = $tableStmt->fetchAll(PDO::FETCH_ASSOC);
             display: flex;
             align-items: center; /* Center vertically */
             justify-content: center; /* Center horizontally */
+            padding: 20px;
         }
 
-        /* --- KIOSK FORM STYLES --- */
-        .loginscreen {
-            background-color: rgba(255, 255, 255, 0.95);
-            padding: 30px 20px;
-            border-radius: 8px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        /* --- LANDSCAPE KIOSK STYLES --- */
+        .landscape-kiosk {
+            background-color: rgba(255, 255, 255, 0.98);
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.4);
             animation: fadeIn 0.6s ease-out;
-            text-align: center;
             width: 100%;
-            max-width: 380px; /* Reduced width for a more compact board */
+            max-width: 900px;
+            overflow: hidden; /* Contains the border-radius for child elements */
         }
 
         @keyframes fadeIn {
@@ -215,26 +192,39 @@ $attendance_records = $tableStmt->fetchAll(PDO::FETCH_ASSOC);
             to { opacity: 1; transform: translateY(0); }
         }
 
-        .logo-container { margin-bottom: 15px; }
-        h3 { font-weight: 600; margin-top: 10px; font-size: 22px; color: #333; }
+        /* Left Side (Branding & Clock) */
+        .brand-side {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: 50px 30px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            border-right: 1px solid #e7eaec;
+            text-align: center;
+        }
+        .brand-side h3 { font-weight: 700; margin-top: 15px; font-size: 24px; color: #2f4050; }
+        .brand-side p { color: #888; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; font-size: 13px; }
 
-        .ibox-content {
+        /* Live Clock styling inside left side */
+        .clock-panel { margin-top: 30px; padding-top: 30px; border-top: 1px dashed #d1dade; width: 100%; }
+        #live-clock { font-size: 2.2rem; font-weight: 700; color: #1ab394; line-height: 1.2; letter-spacing: -1px; }
+        #live-date { font-size: 0.9rem; font-weight: 600; color: #a7b1c2; text-transform: uppercase; letter-spacing: 0.5px; }
+
+        /* Right Side (Form) */
+        .form-side {
+            padding: 50px 40px;
             background-color: #ffffff;
-            color: inherit;
-            padding: 25px 20px 20px 20px;
-            border-color: #e7eaec;
-            border-style: solid solid none;
-            border-width: 1px 0;
-            border-radius: 4px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.04);
-            text-align: left;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
         }
 
         /* Form Controls */
         .form-control {
             border: 1px solid #e5e6e7;
-            border-radius: 2px;
-            padding: 8px 12px;
+            border-radius: 4px;
+            padding: 10px 14px;
             font-size: 14px;
             box-shadow: none;
             transition: border-color 0.15s ease-in-out 0s;
@@ -243,7 +233,7 @@ $attendance_records = $tableStmt->fetchAll(PDO::FETCH_ASSOC);
         .form-control:disabled { background-color: #f8f9fa; cursor: not-allowed; }
 
         /* Buttons */
-        .btn { border-radius: 3px; font-size: 14px; font-weight: 600; padding: 8px 12px; }
+        .btn { border-radius: 4px; font-size: 14px; font-weight: 600; padding: 10px 15px; transition: all 0.2s; }
         .btn-primary { background-color: #1ab394; border-color: #1ab394; color: #FFFFFF; }
         .btn-primary:hover, .btn-primary:focus, .btn-primary:active { background-color: #18a689 !important; border-color: #18a689 !important; color: #FFFFFF !important; }
         .btn-white { color: inherit; background: white; border: 1px solid #e7eaec; }
@@ -251,47 +241,40 @@ $attendance_records = $tableStmt->fetchAll(PDO::FETCH_ASSOC);
         .btn-info-custom { background-color: #23c6c8; border-color: #23c6c8; color: #FFFFFF; }
         .btn-info-custom:hover { background-color: #21b9bb; border-color: #21b9bb; color: #FFFFFF; }
 
-        /* Live Clock styling */
-        .clock-panel { text-align: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px dashed #e7eaec; }
-        #live-clock { font-size: 1.8rem; font-weight: 700; color: #1ab394; margin-bottom: 0; line-height: 1.2; }
-        #live-date { font-size: 0.85rem; font-weight: 600; color: #a7b1c2; text-transform: uppercase; letter-spacing: 0.5px; }
-
-        /* Toggle Switches adapted for Inspinia */
-        .toggle-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #f3f3f4; }
-        .toggle-row:last-child { border-bottom: none; padding-bottom: 0; }
+        /* Toggle Switches */
+        .toggle-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #f3f3f4; }
+        .toggle-row:last-child { border-bottom: none; }
         .toggle-row label { font-weight: 600; color: #676a6c; margin-bottom: 0; cursor: pointer; font-size: 14px; }
-        .form-check-input { width: 3em !important; height: 1.5em !important; cursor: pointer; border-color: #e5e6e7; }
+        .form-check-input { width: 3.5em !important; height: 1.75em !important; cursor: pointer; border-color: #e5e6e7; }
         .form-check-input:checked { background-color: #1ab394; border-color: #1ab394; }
         .form-check-input:focus { box-shadow: 0 0 0 0.25rem rgba(26, 179, 148, 0.25); border-color: #1ab394; }
         .form-check-input:disabled { cursor: not-allowed; opacity: 0.5; }
 
-        /* Select2 Inspinia Integration */
+        /* Select2 Integration */
         .select2-container--default .select2-selection--single {
-            border: 1px solid #e5e6e7 !important; border-radius: 2px !important; height: 36px !important; display: flex; align-items: center;
+            border: 1px solid #e5e6e7 !important; border-radius: 4px !important; height: 42px !important; display: flex; align-items: center;
         }
         .select2-container--default.select2-container--open .select2-selection--single,
         .select2-container--default .select2-selection--single:focus { border-color: #1ab394 !important; outline: none; }
-        .select2-container--default .select2-selection--single .select2-selection__rendered { color: #676a6c !important; padding-left: 12px !important; font-size: 14px; }
-        .select2-container--default .select2-selection--single .select2-selection__arrow { height: 34px !important; right: 6px !important; }
-        .select2-dropdown { border-color: #e5e6e7 !important; border-radius: 2px !important; box-shadow: 0 4px 12px rgba(0,0,0,0.1) !important; }
+        .select2-container--default .select2-selection--single .select2-selection__rendered { color: #676a6c !important; padding-left: 14px !important; font-size: 14px; }
+        .select2-container--default .select2-selection--single .select2-selection__arrow { height: 40px !important; right: 10px !important; }
+        .select2-dropdown { border-color: #e5e6e7 !important; border-radius: 4px !important; box-shadow: 0 4px 12px rgba(0,0,0,0.1) !important; }
         .select2-container--default .select2-results__option--highlighted.select2-results__option--selectable { background-color: #1ab394 !important; }
 
         /* Camera overlay style */
         .camera-overlay { position: absolute; top: 10%; bottom: 10%; left: 15%; right: 15%; border: 2px dashed rgba(255, 255, 255, 0.7); border-radius: 20px; pointer-events: none; }
         .countdown-timer { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 6rem; color: rgba(255, 255, 255, 0.9); font-weight: 700; text-shadow: 0px 4px 15px rgba(0, 0, 0, 0.6); z-index: 10; pointer-events: none; }
-        .alert { border-radius: 3px; font-size: 13px; padding: 10px; }
 
+        /* Mobile Adjustments */
+        @media (max-width: 767.98px) {
+            .landscape-kiosk { flex-direction: column; max-width: 450px; }
+            .brand-side { border-right: none; border-bottom: 1px solid #e7eaec; padding: 30px 20px; }
+            .form-side { padding: 30px 20px; }
+            #live-clock { font-size: 1.8rem; }
+        }
 
         /* --- DATA TABLE STYLES --- */
-        /* Labels (Badges) */
-        .label {
-            font-family: 'Open Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif;
-            font-size: 10px;
-            font-weight: 600;
-            padding: 3px 8px;
-            text-shadow: none;
-            border-radius: 0.25em;
-        }
+        .label { font-size: 10px; font-weight: 600; padding: 3px 8px; border-radius: 0.25em; }
         .label-primary { background-color: #1ab394; color: #FFFFFF; }
         .label-danger { background-color: #ed5565; color: #FFFFFF; }
         .label-info { background-color: #23c6c8; color: #FFFFFF; }
@@ -299,25 +282,11 @@ $attendance_records = $tableStmt->fetchAll(PDO::FETCH_ASSOC);
         .label-warning { background-color: #f8ac59; color: #FFFFFF; }
         .label-plain { background-color: #d1dade; color: #5e5e5e; }
 
-        /* Tables */
-        .table { font-size: 13px; background-color: transparent; }
         .table > thead > tr > th { border-bottom: 1px solid #e7eaec; font-weight: 600; color: #333; }
         .table > tbody > tr > td { border-top: 1px solid #e7eaec; vertical-align: middle; }
 
-        /* Pagination overrides for Inspinia look */
-        .pagination > li > a, .pagination > li > span {
-            color: #676a6c; background-color: #ffffff; border: 1px solid #e7eaec; margin-left: -1px; padding: 5px 10px; font-size: 12px; text-decoration: none;
-        }
-        .pagination > li.active > a, .pagination > li.active > span,
-        .pagination > li.active > a:hover, .pagination > li.active > span:hover { background-color: #1ab394; border-color: #1ab394; color: #fff; z-index: 3; }
-        .pagination > li > a:hover, .pagination > li > span:hover { background-color: #eee; border-color: #dddddd; color: #676a6c; }
-        .pagination > li.disabled > a, .pagination > li.disabled > span { color: #d1dade; background-color: #fff; border-color: #e7eaec; cursor: not-allowed; }
-
-        .form-select-sm { border-radius: 2px; border: 1px solid #e5e6e7; color: #676a6c; }
-        .form-select-sm:focus { border-color: #1ab394; box-shadow: none; }
-        
-        .text-inspinia { color: #1ab394; font-weight: 600; }
-        .text-inspinia:hover { color: #18a689; }
+        .pagination > li > a, .pagination > li > span { color: #676a6c; border: 1px solid #e7eaec; margin-left: -1px; padding: 5px 10px; text-decoration: none; }
+        .pagination > li.active > a, .pagination > li.active > span { background-color: #1ab394; border-color: #1ab394; color: #fff; }
 
         .profile-modal-content { border-radius: 15px; border: none; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
         .table-modal-content { border-top: 4px solid #1ab394; border-radius: 8px; border: none; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
@@ -325,236 +294,110 @@ $attendance_records = $tableStmt->fetchAll(PDO::FETCH_ASSOC);
 </head>
 <body>
 
-<div class="container-fluid px-4">
-    <!-- ========================================== -->
-    <!-- CENTERED: THE KIOSK FORM                   -->
-    <!-- ========================================== -->
-    <div class="loginscreen mx-auto">
-        
-        <!-- Logo Section -->
+<!-- ========================================== -->
+<!-- CENTERED: THE LANDSCAPE KIOSK              -->
+<!-- ========================================== -->
+<div class="landscape-kiosk mx-auto row g-0">
+    
+    <!-- LEFT SIDE: Branding & Info -->
+    <div class="col-md-5 brand-side">
         <div class="logo-container">
-            <img src="img/logo/DICT.png" alt="DICT Logo" class="img-fluid" style="max-height: 120px; object-fit: contain;">
+            <img src="img/logo/DICT.png" alt="DICT Logo" class="img-fluid" style="max-height: 140px; object-fit: contain;">
         </div>
         
         <h3>DICT Monday Flag Raising</h3>
-        <p class="text-muted mb-4">Attendance Checker</p>
+        <p>Attendance Checker</p>
 
+        <!-- Live Clock -->
+        <div class="clock-panel">
+            <div id="live-clock">00:00:00 AM</div>
+            <div id="live-date">Loading Date...</div>
+        </div>
+    </div>
+
+    <!-- RIGHT SIDE: Form & Actions -->
+    <div class="col-md-7 form-side">
         <!-- Display Database Errors -->
         <?php if ($db_error): ?>
-            <div class="alert alert-danger text-center" role="alert">
+            <div class="alert alert-danger text-center py-2" role="alert">
                 <i class="bi bi-exclamation-triangle-fill"></i> <?php echo htmlspecialchars($db_error); ?>
             </div>
         <?php endif; ?>
 
-        <div class="ibox-content mb-3">
+        <form id="attendance-form" method="POST" action="index.php">
+            <input type="hidden" name="action" value="mark_attendance">
+            <!-- Hidden field for the captured photo -->
+            <input type="hidden" name="photo_data" id="photo_data" value="">
             
-            <!-- Live Clock -->
-            <div class="clock-panel">
-                <div id="live-clock">00:00:00 AM</div>
-                <div id="live-date">Loading Date...</div>
+            <div class="mb-4">
+                <label class="form-label text-muted fw-bold small mb-2 text-uppercase letter-spacing-1">Select Employee</label>
+                <select id="emp_id" name="emp_id" class="form-control" required <?php echo !$is_monday ? 'disabled' : ''; ?>>
+                    <option value=""></option> 
+                    <?php foreach ($employees as $emp): ?>
+                        <option value="<?php echo htmlspecialchars($emp['emp_id']); ?>">
+                            <?php echo htmlspecialchars($emp['full']); ?> 
+                            <?php if(!empty($emp['designation'])) echo ' (' . htmlspecialchars($emp['designation']) . ')'; ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
             </div>
 
-            <form id="attendance-form" method="POST" action="index.php">
-                <input type="hidden" name="action" value="mark_attendance">
-                <!-- Hidden field for the captured photo -->
-                <input type="hidden" name="photo_data" id="photo_data" value="">
-                
-                <div class="mb-3">
-                    <label class="form-label text-muted fw-bold small mb-1">Employee Name</label>
-                    <select id="emp_id" name="emp_id" class="form-control" required <?php echo !$is_monday ? 'disabled' : ''; ?>>
-                        <option value=""></option> 
-                        <?php foreach ($employees as $emp): ?>
-                            <option value="<?php echo htmlspecialchars($emp['emp_id']); ?>">
-                                <?php echo htmlspecialchars($emp['full']); ?> 
-                                <?php if(!empty($emp['designation'])) echo ' (' . htmlspecialchars($emp['designation']) . ')'; ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
-                </div>
-
-                <div class="mb-4">
-                    <div class="toggle-row">
-                        <label class="form-check-label" for="with_id">
-                            <i class="bi bi-person-vcard me-1 text-muted"></i> Wearing your ID?
-                        </label>
-                        <div class="form-check form-switch m-0 p-0">
-                            <input class="form-check-input m-0 float-end" type="checkbox" role="switch" name="with_id" id="with_id" value="Yes" <?php echo !$is_monday ? 'disabled' : ''; ?>>
-                        </div>
-                    </div>
-                    <div class="toggle-row">
-                        <label class="form-check-label" for="is_asean">
-                            <i class="bi bi-suit-tie me-1 text-muted"></i> Wearing Formal Attire?
-                        </label>
-                        <div class="form-check form-switch m-0 p-0">
-                            <input class="form-check-input m-0 float-end" type="checkbox" role="switch" name="is_asean" id="is_asean" value="Yes" <?php echo !$is_monday ? 'disabled' : ''; ?>>
-                        </div>
+            <div class="mb-4 bg-light rounded p-3 border">
+                <div class="toggle-row pt-0">
+                    <label class="form-check-label" for="with_id">
+                        <i class="bi bi-person-vcard me-2 text-muted fs-5 align-middle"></i> Wearing your ID?
+                    </label>
+                    <div class="form-check form-switch m-0 p-0">
+                        <input class="form-check-input m-0 float-end" type="checkbox" role="switch" name="with_id" id="with_id" value="Yes" <?php echo !$is_monday ? 'disabled' : ''; ?>>
                     </div>
                 </div>
-
-                <?php if ($is_monday): ?>
-                    <button type="button" onclick="confirmSignIn()" class="btn btn-primary w-100 d-block">
-                        <i class="bi bi-box-arrow-in-right me-1"></i> Sign In
-                    </button>
-                <?php else: ?>
-                    <div class="alert alert-warning text-center p-2 mb-3" style="font-size: 13px; background-color: #fcf8e3; border-color: #faebcc; color: #8a6d3b;">
-                        <i class="bi bi-info-circle-fill"></i> Attendance is only available on Mondays.
+                <div class="toggle-row pb-0">
+                    <label class="form-check-label" for="is_asean">
+                        <i class="bi bi-suit-tie me-2 text-muted fs-5 align-middle"></i> Wearing Formal Attire?
+                    </label>
+                    <div class="form-check form-switch m-0 p-0">
+                        <input class="form-check-input m-0 float-end" type="checkbox" role="switch" name="is_asean" id="is_asean" value="Yes" <?php echo !$is_monday ? 'disabled' : ''; ?>>
                     </div>
-                    <button type="button" class="btn w-100 d-block" disabled style="background-color: #e5e6e7; border-color: #e5e6e7; color: #888; cursor: not-allowed;">
-                        <i class="bi bi-lock-fill me-1"></i> Sign In Locked
-                    </button>
-                <?php endif; ?>
-            </form>
+                </div>
+            </div>
+
+            <?php if ($is_monday): ?>
+                <button type="button" onclick="confirmSignIn()" class="btn btn-primary w-100 d-block py-2 mb-4">
+                    <i class="bi bi-box-arrow-in-right me-1"></i> Submit Attendance
+                </button>
+            <?php else: ?>
+                <div class="alert alert-warning text-center p-2 mb-3" style="font-size: 13px; background-color: #fcf8e3; border-color: #faebcc; color: #8a6d3b;">
+                    <i class="bi bi-info-circle-fill"></i> Attendance is only available on Mondays.
+                </div>
+                <button type="button" class="btn w-100 d-block py-2 mb-4" disabled style="background-color: #e5e6e7; border-color: #e5e6e7; color: #888; cursor: not-allowed;">
+                    <i class="bi bi-lock-fill me-1"></i> Sign In Locked
+                </button>
+            <?php endif; ?>
+        </form>
+
+        <hr class="my-2 text-muted" style="opacity: 0.15;">
+
+        <div class="row g-2 mt-2">
+            <div class="col-6">
+                <a href="login.php" class="btn btn-white w-100 h-100 d-flex align-items-center justify-content-center">
+                    <i class="bi bi-person-circle me-2"></i> Admin Login
+                </a>
+            </div>
+            <div class="col-6">
+                <!-- Button to trigger Recent Records Modal -->
+                <button type="button" class="btn btn-info-custom w-100 h-100 d-flex align-items-center justify-content-center" data-bs-toggle="modal" data-bs-target="#tableRecordsModal">
+                    <i class="bi bi-table me-2"></i> View Records
+                </button>
+            </div>
         </div>
-
-        <a href="login.php" class="btn btn-white w-100 mb-2">
-            <i class="bi bi-person-circle me-1"></i> Admin / Staff Login
-        </a>
         
-        <!-- Button to trigger Recent Records Modal -->
-        <button type="button" class="btn btn-info-custom w-100" data-bs-toggle="modal" data-bs-target="#tableRecordsModal">
-            <i class="bi bi-table me-1"></i> View Recent Records
-        </button>
-
     </div>
 </div>
 
 <!-- ========================================== -->
-<!-- MODAL: DATA TABLE                          -->
+<!-- INCLUDE: RECENT RECORDS MODAL              -->
 <!-- ========================================== -->
-<div class="modal fade" id="tableRecordsModal" tabindex="-1" aria-labelledby="tableRecordsModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
-        <div class="modal-content table-modal-content">
-            <div class="modal-header border-bottom-0 pb-0">
-                <h5 class="modal-title text-dark fw-bold" id="tableRecordsModalLabel"><i class="bi bi-card-list me-2 text-inspinia"></i> Recent Attendance Records</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body pb-4">
-                
-                <!-- Show Entries Dropdown -->
-                <div class="row mb-3 mt-2 align-items-center">
-                    <div class="col-sm-12">
-                        <form method="GET" action="index.php" class="d-inline-flex align-items-center" id="entriesForm">
-                            <label class="mb-0 me-2 text-muted fw-normal">Show</label>
-                            <select name="limit" class="form-select form-select-sm w-auto d-inline-block shadow-none" onchange="document.getElementById('entriesForm').submit();">
-                                <option value="10" <?php echo $limit == 10 ? 'selected' : ''; ?>>10</option>
-                                <option value="25" <?php echo $limit == 25 ? 'selected' : ''; ?>>25</option>
-                                <option value="50" <?php echo $limit == 50 ? 'selected' : ''; ?>>50</option>
-                            </select>
-                            <label class="mb-0 ms-2 text-muted fw-normal">entries</label>
-                            <input type="hidden" name="page" value="1"> 
-                        </form>
-                    </div>
-                </div>
-                
-                <!-- Main Table -->
-                <div class="table-responsive">
-                    <table class="table table-hover align-middle mb-0">
-                        <thead>
-                            <tr>
-                                <th>Date & Time</th>
-                                <th>Employee Name</th>
-                                <th class="text-center">Status</th>   
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php if (count($attendance_records) > 0): ?>
-                                <?php foreach ($attendance_records as $record): ?>
-                                    <?php 
-                                        $hasId = ($record['with_id'] === 'Yes');
-                                        $hasProperAttire = ($record['is_asean'] === 'Yes');
-                                        
-                                        // Use db fields directly
-                                        $isCompliant = ($record['is_compliant'] == 1);
-
-                                        // Format Date & Time for passing to photo modal
-                                        $formattedDateTime = date('M d, Y - h:i A', strtotime($record['time_recorded']));
-                                    ?>
-                                    <tr>
-                                        <td>
-                                            <strong><?php echo date('M d, Y', strtotime($record['time_recorded'])); ?></strong><br>
-                                            <div class="mt-1 d-flex align-items-center">
-                                                <small class="text-muted"><i class="bi bi-clock me-1"></i><?php echo date('h:i A', strtotime($record['time_recorded'])); ?></small>
-                                            </div>
-                                        </td>
-                                        
-                                        <td>
-                                            <strong><?php echo htmlspecialchars($record['full'] ?? 'N/A'); ?></strong><br>
-                                            <small class="text-muted"><?php echo htmlspecialchars($record['designation'] ?? 'N/A'); ?></small>
-                                        </td>
-                                        
-                                        <td class="text-center">
-                                            <?php if (isset($record['status']) && $record['status'] === 'Late'): ?>
-                                                <span class="label label-danger"><i class="bi bi-exclamation-circle me-1"></i>Late</span>
-                                            <?php else: ?>
-                                                <span class="label label-primary"><i class="bi bi-check-circle me-1"></i>On Time</span>
-                                            <?php endif; ?>
-                                        </td>
-                                    </tr>
-                                <?php endforeach; ?>
-                            <?php else: ?>
-                                <tr>
-                                    <td colspan="3" class="text-center text-muted py-4">
-                                        <h4 class="fw-light mb-1 mt-3">No Records Yet</h4>
-                                        <p class="small text-muted mb-4">Waiting for the first attendance entry.</p>
-                                    </td>
-                                </tr>
-                            <?php endif; ?>
-                        </tbody>
-                    </table>
-                </div>
-
-                <!-- Footer Pagination -->
-                <div class="row mt-3 align-items-center">
-                    <div class="col-sm-12 col-md-5">
-                        <?php
-                            $startEntry = ($totalRecords > 0) ? $offset + 1 : 0;
-                            $endEntry = min($offset + $limit, $totalRecords);
-                        ?>
-                        <div class="text-muted" style="font-size: 13px;">
-                            Showing <?php echo $startEntry; ?> to <?php echo $endEntry; ?> of <?php echo $totalRecords; ?> entries
-                        </div>
-                    </div>
-                    <div class="col-sm-12 col-md-7 d-flex justify-content-md-end justify-content-center mt-3 mt-md-0">
-                        <?php if ($totalPages > 1): ?>
-                            <ul class="pagination pagination-sm mb-0 list-unstyled d-flex">
-                                <li class="page-item <?php echo $page <= 1 ? 'disabled' : ''; ?>">
-                                    <a class="page-link" href="?limit=<?php echo $limit; ?>&page=<?php echo $page - 1; ?>">Previous</a>
-                                </li>
-                                
-                                <?php
-                                    $startPage = max(1, $page - 2);
-                                    $endPage = min($totalPages, $page + 2);
-                                    
-                                    if ($startPage > 1) {
-                                        echo '<li class="page-item"><a class="page-link" href="?limit=' . $limit . '&page=1">1</a></li>';
-                                        if ($startPage > 2) echo '<li class="page-item disabled"><span class="page-link">...</span></li>';
-                                    }
-
-                                    for ($i = $startPage; $i <= $endPage; $i++): ?>
-                                        <li class="page-item <?php echo $page == $i ? 'active' : ''; ?>">
-                                            <a class="page-link" href="?limit=<?php echo $limit; ?>&page=<?php echo $i; ?>"><?php echo $i; ?></a>
-                                        </li>
-                                    <?php endfor; 
-                                    
-                                    if ($endPage < $totalPages) {
-                                        if ($endPage < $totalPages - 1) echo '<li class="page-item disabled"><span class="page-link">...</span></li>';
-                                        echo '<li class="page-item"><a class="page-link" href="?limit=' . $limit . '&page=' . $totalPages . '">' . $totalPages . '</a></li>';
-                                    }
-                                ?>
-
-                                <li class="page-item <?php echo $page >= $totalPages ? 'disabled' : ''; ?>">
-                                    <a class="page-link" href="?limit=<?php echo $limit; ?>&page=<?php echo $page + 1; ?>">Next</a>
-                                </li>
-                            </ul>
-                        <?php endif; ?>
-                    </div>
-                </div>
-
-            </div>
-        </div>
-    </div>
-</div>
-
+<?php include 'recent_records.php'; ?>
 
 <!-- Photo Viewer Modal -->
 <div class="modal fade" id="photoViewerModal" tabindex="-1" aria-hidden="true">
