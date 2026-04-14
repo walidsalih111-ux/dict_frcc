@@ -351,6 +351,90 @@ $role_query = $conn->query("SELECT DISTINCT role FROM user_account WHERE role IS
                 table.column(7).search(this.value).draw();
             });
 
+            // Delete Employee Button Handler
+            $(document).on('click', '.delete-btn', function(e) {
+                e.preventDefault();
+                const empId = $(this).data('id');
+                const empName = $(this).closest('tr').find('td:eq(1)').text(); // Get employee name from row
+
+                Swal.fire({
+                    title: 'Delete Employee?',
+                    text: `Are you sure you want to delete ${empName}? This action cannot be undone.`,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#e74a3b',
+                    cancelButtonColor: '#6c757d',
+                    confirmButtonText: 'Yes, Delete!',
+                    cancelButtonText: 'Cancel'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        // Show loading state and immediately start the AJAX call
+                        Swal.fire({
+                            title: 'Deleting...',
+                            text: 'Please wait while we delete this employee.',
+                            icon: 'info',
+                            allowOutsideClick: false,
+                            allowEscapeKey: false,
+                            showConfirmButton: false,
+                            didOpen: () => {
+                                Swal.showLoading();
+                            }
+                        });
+
+                        // Send delete request via AJAX with timeout
+                        $.ajax({
+                            url: 'process_delete.php',
+                            type: 'POST',
+                            dataType: 'json',
+                            data: { id: empId },
+                            timeout: 10000, // 10 second timeout
+                            success: function(result) {
+                                if (result && result.status === 'success') {
+                                    Swal.fire({
+                                        icon: 'success',
+                                        title: 'Deleted!',
+                                        text: result.message,
+                                        confirmButtonColor: '#1cc88a',
+                                        timer: 2000,
+                                        showConfirmButton: false
+                                    }).then(() => {
+                                        // Reload the page to refresh the table
+                                        location.reload();
+                                    });
+                                } else {
+                                    Swal.fire({
+                                        icon: 'error',
+                                        title: 'Error',
+                                        text: (result && result.message) ? result.message : 'Invalid response from server.',
+                                        confirmButtonColor: '#e74a3b'
+                                    });
+                                }
+                            },
+                            error: function(xhr, status, error) {
+                                let errorMessage = 'Failed to delete employee. Please try again.';
+                                if (status === 'timeout') {
+                                    errorMessage = 'Request timed out. Please check your connection and try again.';
+                                } else if (xhr.status === 0) {
+                                    errorMessage = 'Unable to connect to server. Please check your internet connection.';
+                                } else if (xhr.status >= 500) {
+                                    errorMessage = 'Server error occurred. Please try again later.';
+                                } else if (xhr.responseText) {
+                                    console.error('Server response:', xhr.responseText);
+                                }
+
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Error',
+                                    text: errorMessage,
+                                    confirmButtonColor: '#e74a3b'
+                                });
+                                console.error('Delete error:', error);
+                            }
+                        });
+                    }
+                });
+            });
+
             // SweetAlert Logout Confirmation
             $('#logout-btn').on('click', function(e) {
                 e.preventDefault(); // Prevent instant redirect

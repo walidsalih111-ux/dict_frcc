@@ -4,6 +4,10 @@ session_start();
 // Set header to return JSON for AJAX/SweetAlert responses
 header('Content-Type: application/json');
 
+// Disable error output to prevent JSON corruption
+ini_set('display_errors', 0);
+error_reporting(0);
+
 // Security check: Only allow admins to perform deletions
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
     echo json_encode(['status' => 'error', 'message' => 'Unauthorized access. Only admins can delete records.']);
@@ -12,12 +16,18 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
 
 require 'connect.php';
 
+// Check if PDO connection is available
+if (!$pdo) {
+    echo json_encode(['status' => 'error', 'message' => 'Database connection failed.']);
+    exit();
+}
+
 // Check if the request is a POST request
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    
+
     // Support both standard Form POST and JSON payload (Fetch API/Axios)
     $emp_id = 0;
-    
+
     if (isset($_POST['id'])) {
         $emp_id = intval($_POST['id']);
     } elseif (isset($_POST['emp_id'])) {
@@ -33,37 +43,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($emp_id > 0) {
         // Begin Transaction to ensure data integrity
-        $conn->begin_transaction();
+        $pdo->beginTransaction();
 
         try {
             // 1. Delete associated user account to completely revoke login access
             // (Even though the DB constraint is ON DELETE SET NULL, deleting the account is safer)
-            $stmt_user = $conn->prepare("DELETE FROM user_account WHERE emp_id = ?");
-            $stmt_user->bind_param("i", $emp_id);
-            $stmt_user->execute();
-            $stmt_user->close();
+            $stmt_user = $pdo->prepare("DELETE FROM user_account WHERE emp_id = ?");
+            $stmt_user->execute([$emp_id]);
 
             // 2. Delete the employee record
             // Note: Attendance records will be automatically deleted due to ON DELETE CASCADE
-            $stmt_emp = $conn->prepare("DELETE FROM employees WHERE emp_id = ?");
-            $stmt_emp->bind_param("i", $emp_id);
-            $stmt_emp->execute();
-            
-            if ($stmt_emp->affected_rows > 0) {
+            $stmt_emp = $pdo->prepare("DELETE FROM employees WHERE emp_id = ?");
+            $stmt_emp->execute([$emp_id]);
+
+            if ($stmt_emp->rowCount() > 0) {
                 // Commit transaction if successful
-                $conn->commit();
+                $pdo->commit();
                 echo json_encode(['status' => 'success', 'message' => 'Employee deleted successfully.']);
             } else {
                 // Rollback if the employee was not found
-                $conn->rollback();
+                $pdo->rollBack();
                 echo json_encode(['status' => 'error', 'message' => 'Employee not found or already deleted.']);
             }
-            
-            $stmt_emp->close();
 
-        } catch (Exception $e) {
+        } catch (PDOException $e) {
             // Rollback the transaction on any error
-            $conn->rollback();
+            $pdo->rollBack();
             echo json_encode(['status' => 'error', 'message' => 'Failed to delete employee: ' . $e->getMessage()]);
         }
 
@@ -73,6 +78,4 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 } else {
     echo json_encode(['status' => 'error', 'message' => 'Invalid request method. Please use POST.']);
 }
-
-$conn->close();
 ?>

@@ -30,7 +30,7 @@ git clone https://github.com/walidsalih111-ux/dict_frcc.git
 
 
 April 06, 2026 – Update
-- Added auto-capture in 5 seconds, recapture button, preview modal, and widened camera modal
+- Added auto-capture in 3 seconds, recapture button, preview modal, and widened camera modal
 - Fixed bugs
 - Recent attendance records will be added to the attendance checker page
 - Removed the login user; only the admin login page will remain
