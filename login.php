@@ -93,10 +93,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;600;700&display=swap" rel="stylesheet">
 
     <style>
-        /* Inspinia Theme Core Variables & Styles */
+        /* Base page styles identical to index.php */
         body {
-            background-color: #f3f3f4; /* Fallback color */
-            /* Added a linear-gradient overlay with 60% opacity black to darken the background image */
+            background-color: #f3f3f4;
             background-image: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url('img/bg/philippine_bg.png');
             background-size: cover;
             background-position: center;
@@ -104,95 +103,77 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             background-attachment: fixed;
             color: #676a6c;
             font-family: 'Open Sans', helvetica, arial, sans-serif;
-            height: 100vh;
+            margin: 0;
+            min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
-            margin: 0;
+            padding: 20px;
         }
 
-        .loginscreen.middle-box {
-            width: 360px;
-            max-width: 90%;
-            z-index: 100;
+        /* --- LANDSCAPE KIOSK STYLES --- */
+        .landscape-kiosk {
+            background-color: rgba(255, 255, 255, 0.98);
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+            animation: fadeIn 0.6s ease-out;
+            width: 100%;
+            max-width: 900px;
+            overflow: hidden;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-15px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Left Side (Branding & Clock) */
+        .brand-side {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: 50px 30px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            border-right: 1px solid #e7eaec;
             text-align: center;
-            /* Added a subtle background and padding to ensure text is readable over the image */
-            background-color: rgba(255, 255, 255, 0.85);
-            padding: 30px 20px;
-            border-radius: 8px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
         }
+        .brand-side h3 { font-weight: 700; margin-top: 15px; font-size: 24px; color: #2f4050; }
+        .brand-side p { color: #888; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; font-size: 13px; }
 
-        /* Adjusted for the new image logo */
-        .logo-container {
-            margin-bottom: 15px;
-        }
+        /* Live Clock styling */
+        .clock-panel { margin-top: 30px; padding-top: 30px; border-top: 1px dashed #d1dade; width: 100%; }
+        #live-clock { font-size: 2.2rem; font-weight: 700; color: #1ab394; line-height: 1.2; letter-spacing: -1px; }
+        #live-date { font-size: 0.9rem; font-weight: 600; color: #a7b1c2; text-transform: uppercase; letter-spacing: 0.5px; }
 
-        h3 {
-            font-weight: 600;
-            margin-top: 10px;
-            font-size: 24px;
-            color: #333; /* Darker text for better contrast */
-        }
-
-        .ibox-content {
+        /* Right Side (Form) */
+        .form-side {
+            padding: 50px 40px;
             background-color: #ffffff;
-            color: inherit;
-            padding: 25px 20px 20px 20px;
-            border-color: #e7eaec;
-            border-image: none;
-            border-style: solid solid none;
-            border-width: 1px 0;
-            border-radius: 4px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.04);
-            text-align: left;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
         }
 
         /* Form Controls */
         .form-control {
             border: 1px solid #e5e6e7;
-            border-radius: 2px;
-            padding: 8px 12px;
+            border-radius: 4px;
+            padding: 10px 14px;
             font-size: 14px;
             box-shadow: none;
             transition: border-color 0.15s ease-in-out 0s;
         }
-        .form-control:focus {
-            border-color: #1ab394;
-            box-shadow: none;
-        }
+        .form-control:focus { border-color: #1ab394; box-shadow: none; }
 
         /* Buttons */
-        .btn {
-            border-radius: 3px;
-            font-size: 14px;
-            font-weight: 600;
-            padding: 8px 12px;
-        }
-        
-        .btn-primary { /* Inspinia Teal */
-            background-color: #1ab394;
-            border-color: #1ab394;
-            color: #FFFFFF;
-        }
-        .btn-primary:hover, .btn-primary:focus, .btn-primary:active {
-            background-color: #18a689 !important;
-            border-color: #18a689 !important;
-            color: #FFFFFF !important;
-        }
+        .btn { border-radius: 4px; font-size: 14px; font-weight: 600; padding: 10px 15px; transition: all 0.2s; }
+        .btn-primary { background-color: #1ab394; border-color: #1ab394; color: #FFFFFF; }
+        .btn-primary:hover, .btn-primary:focus, .btn-primary:active { background-color: #18a689 !important; border-color: #18a689 !important; color: #FFFFFF !important; }
+        .btn-white { color: inherit; background: white; border: 1px solid #e7eaec; }
+        .btn-white:hover, .btn-white:focus { color: inherit; border: 1px solid #d2d2d2; background: #f8f9fa; }
 
-        .btn-white {
-            color: inherit;
-            background: white;
-            border: 1px solid #e7eaec;
-        }
-        .btn-white:hover, .btn-white:focus {
-            color: inherit;
-            border: 1px solid #d2d2d2;
-            background: #f8f9fa;
-        }
-
-        /* Utilities */
+        /* Password Toggle */
         .toggle-password {
             cursor: pointer;
             color: #999c9e;
@@ -201,66 +182,86 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         .toggle-password:hover {
             color: #1ab394;
         }
-        .alert {
-            border-radius: 3px;
-            font-size: 13px;
-            padding: 10px;
+
+        /* Mobile Adjustments */
+        @media (max-width: 767.98px) {
+            .landscape-kiosk { flex-direction: column; max-width: 450px; }
+            .brand-side { border-right: none; border-bottom: 1px solid #e7eaec; padding: 30px 20px; }
+            .form-side { padding: 30px 20px; }
+            #live-clock { font-size: 1.8rem; }
         }
     </style>
 </head>
 <body>
 
-<div class="middle-box loginscreen">
+<div class="landscape-kiosk mx-auto row g-0">
     
-    <!-- Updated Logo Section -->
-    <div class="logo-container">
-        <img src="img/logo/DICT.png" alt="DICT Logo" class="img-fluid" style="max-height: 130px; object-fit: contain;">
+    <!-- LEFT SIDE: Branding & Info -->
+    <div class="col-md-5 brand-side">
+        <div class="logo-container">
+            <img src="img/logo/DICT.png" alt="DICT Logo" class="img-fluid" style="max-height: 140px; object-fit: contain;">
+        </div>
+        
+        <h3>DICT Monday Flag Raising</h3>
+        <p>Admin Login</p>
+
+        <!-- Live Clock -->
+        <div class="clock-panel">
+            <div id="live-clock">00:00:00 AM</div>
+            <div id="live-date">Loading Date...</div>
+        </div>
     </div>
-    
-    <h3>DICT Monday Flag Raising</h3>
-    <p class="text-muted">Attendance Checker</p>
 
-    <!-- Display Errors & Success Messages -->
-    <?php if (!empty($error)): ?>
-        <div class="alert alert-danger text-center" role="alert">
-            <i class="bi bi-exclamation-triangle-fill"></i> <?php echo htmlspecialchars($error); ?>
-        </div>
-    <?php endif; ?>
-    
-    <?php if (!empty($success)): ?>
-        <div class="alert alert-success text-center" role="alert">
-            <i class="bi bi-check-circle-fill"></i> <?php echo htmlspecialchars($success); ?>
-        </div>
-    <?php endif; ?>
+    <!-- RIGHT SIDE: Form & Actions -->
+    <div class="col-md-7 form-side">
+        
+        <!-- Display Errors & Success Messages -->
+        <?php if (!empty($error)): ?>
+            <div class="alert alert-danger text-center py-2 mb-4" role="alert">
+                <i class="bi bi-exclamation-triangle-fill"></i> <?php echo htmlspecialchars($error); ?>
+            </div>
+        <?php endif; ?>
+        
+        <?php if (!empty($success)): ?>
+            <div class="alert alert-success text-center py-2 mb-4" role="alert">
+                <i class="bi bi-check-circle-fill"></i> <?php echo htmlspecialchars($success); ?>
+            </div>
+        <?php endif; ?>
 
-    <div class="ibox-content mb-3">
-        <!-- ================= SINGLE LOGIN FORM ================= -->
         <form method="POST" action="">
-            <div class="mb-3">
-                <input type="text" class="form-control" id="username" name="username" placeholder="Username" required>
+            <div class="mb-4">
+                <label class="form-label text-muted fw-bold small mb-2 text-uppercase letter-spacing-1">Username</label>
+                <input type="text" class="form-control" id="username" name="username" placeholder="Enter your username" required>
             </div>
 
-            <div class="mb-4 position-relative">
-                <input type="password" class="form-control pe-5" id="password" name="password" placeholder="Password" required>
-                <span class="position-absolute top-50 end-0 translate-middle-y me-3 toggle-password" onclick="togglePassword('password', this)">
-                    <i class="bi bi-eye"></i>
-                </span>
+            <div class="mb-4">
+                <label class="form-label text-muted fw-bold small mb-2 text-uppercase letter-spacing-1">Password</label>
+                <div class="position-relative">
+                    <input type="password" class="form-control pe-5" id="password" name="password" placeholder="Enter your password" required>
+                    <span class="position-absolute top-50 end-0 translate-middle-y me-3 toggle-password" onclick="togglePassword('password', this)">
+                        <i class="bi bi-eye"></i>
+                    </span>
+                </div>
             </div>
 
-            <button type="submit" class="btn btn-primary w-100 d-block">
-                Login
+            <button type="submit" class="btn btn-primary w-100 d-block py-2 mb-4">
+                <i class="bi bi-box-arrow-in-right me-1"></i> Login
             </button>
         </form>
+
+        <hr class="my-2 text-muted" style="opacity: 0.15;">
+
+        <!-- Switch Button -->
+        <div class="mt-3">
+            <a href="index.php" class="btn btn-white w-100 py-2 d-flex align-items-center justify-content-center">
+                <i class="bi bi-arrow-left-circle me-2"></i> Return to Attendance Checker
+            </a>
+        </div>
+        
     </div>
-
-    <!-- Switch Button -->
-    <a href="index.php" class="btn btn-white w-100">
-        <i class="bi bi-arrow-repeat me-1"></i> Switch to Weekly Attendance
-    </a>
-
 </div>
 
-<!-- Bootstrap JS needed for tooltips/modals if used later -->
+<!-- Bootstrap JS -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
@@ -279,6 +280,30 @@ function togglePassword(inputId, iconElement) {
         icon.classList.add("bi-eye");
     }
 }
+
+// Live Clock Implementation (Matching index.php visually)
+function updateClock() {
+    const now = new Date();
+    let hours = now.getHours();
+    let minutes = now.getMinutes();
+    let seconds = now.getSeconds();
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    
+    hours = hours % 12;
+    hours = hours ? hours : 12; // the hour '0' should be '12'
+    minutes = minutes < 10 ? '0' + minutes : minutes;
+    seconds = seconds < 10 ? '0' + seconds : seconds;
+    
+    const timeString = hours + ':' + minutes + ':' + seconds + ' ' + ampm;
+    document.getElementById('live-clock').textContent = timeString;
+    
+    const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+    document.getElementById('live-date').textContent = now.toLocaleDateString('en-US', options);
+}
+
+// Initialize clock immediately, then update every second
+updateClock();
+setInterval(updateClock, 1000);
 </script>
 
 </body>

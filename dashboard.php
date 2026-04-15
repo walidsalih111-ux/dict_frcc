@@ -98,9 +98,14 @@ try {
     $sexData = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     // 4. Get Employees by Status
-    $statusQuery = "SELECT status, COUNT(emp_id) as count FROM employees GROUP BY status";
-    $stmt = $pdo->prepare($statusQuery);
-    $stmt->execute();
+    $statusQuery = "SELECT status, COUNT(emp_id) as count FROM employees WHERE status IN ('plantilla', 'job order')";
+    if ($selectedArea) {
+        $statusQuery .= " AND area_of_assignment = :area";
+        $stmt = $pdo->prepare($statusQuery . " GROUP BY status");
+        $stmt->execute(['area' => $selectedArea]);
+    } else {
+        $stmt = $pdo->query($statusQuery . " GROUP BY status");
+    }
     $statusData = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     // 5. Get Employees by Area of Assignment (Filtered)
@@ -151,6 +156,8 @@ try {
     $chartLabel = 'Compliant Employees';
     $chartTitle = 'Compliant Employees by Area' . ($selectedArea ? ' (' . htmlspecialchars($selectedArea) . ')' : '');
 
+    $statusTitle = 'Employees by Status' . ($selectedArea ? ' (' . htmlspecialchars($selectedArea) . ')' : '');
+
 } catch (PDOException $e) {
     // If DB fails to connect, fallback to empty data to prevent page breaking
     $totalEmployees = 0;
@@ -164,6 +171,7 @@ try {
     $chartData = [];
     $chartLabel = '';
     $chartTitle = 'Chart';
+    $statusTitle = 'Employees by Status';
     $dbError = $e->getMessage();
 }
 
@@ -377,15 +385,15 @@ $pieDataJson = json_encode([$compliantCount, $nonCompliantCount]);
                 </div>
             </div>
 
-            <!-- Compliant vs Non-Compliant Pie Chart -->
+            <!-- Employees by Status Pie Chart -->
             <div class="col-lg-6">
                 <div class="ibox ">
                     <div class="ibox-title">
-                        <h5>Overall Compliance Breakdown</h5>
+                        <h5><?php echo $statusTitle; ?></h5>
                     </div>
                     <div class="ibox-content">
                         <div style="position: relative; height: 300px; width: 100%;">
-                            <canvas id="compliancePieChart"></canvas>
+                            <canvas id="statusPieChart"></canvas>
                         </div>
                     </div>
                 </div>
@@ -480,13 +488,16 @@ $pieDataJson = json_encode([$compliantCount, $nonCompliantCount]);
         var ctxBar = document.getElementById("departmentBarChart").getContext("2d");
         new Chart(ctxBar, { type: "horizontalBar", data: barData, options: barOptions });
 
-        // 2. Pie Chart Configuration (Compliant vs Non-Compliant)
+        // 2. Pie Chart Configuration (Employees by Status)
+        var statusLabels = <?php echo $statusLabels; ?>;
+        var statusData = <?php echo $statusCounts; ?>;
+        
         var pieData = {
-            labels: ["Compliant", "Non-Compliant"],
+            labels: statusLabels,
             datasets: [{
-                data: <?php echo $pieDataJson; ?>,
-                backgroundColor: ["#1cc88a", "#e74a3b"],
-                hoverBackgroundColor: ["#17a673", "#e02d1b"]
+                data: statusData,
+                backgroundColor: ["#1cc88a", "#e74a3b", "#36b9cc", "#f6c23e"],
+                hoverBackgroundColor: ["#17a673", "#e02d1b", "#2c9faf", "#f4b619"]
             }]
         };
 
@@ -498,9 +509,8 @@ $pieDataJson = json_encode([$compliantCount, $nonCompliantCount]);
             }
         };
 
-        var ctxPie = document.getElementById("compliancePieChart").getContext("2d");
+        var ctxPie = document.getElementById("statusPieChart").getContext("2d");
         new Chart(ctxPie, { type: "pie", data: pieData, options: pieOptions });
-        
         // 3. Clickable Compliance Cards (Modal Fetch)
         $('.ibox.clickable[data-status]').on('click', function () {
             var status = $(this).data('status');

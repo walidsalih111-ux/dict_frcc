@@ -11,9 +11,7 @@ Our goal is to support government operations by leveraging technology to enhance
 * Mohammad Salih S. Musa
 
 ### Universidad de Zamboanga (UZ) Interns 2026 - BS Computer Engineering
-- MISS | DICT IX BASULTA
-
-
+- M.I.S.S. Team | DICT IX BASULTA
 
 ### Github Push all files command: 
 git add .
@@ -25,7 +23,7 @@ git add <file_name>
 git commit -m "Initial commit"
 git push -u origin main
 
-### Git Clone Command
+### Git Clone command
 git clone https://github.com/walidsalih111-ux/dict_frcc.git
 
 

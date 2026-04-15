@@ -44,15 +44,20 @@ $attendance_records = $tableStmt->fetchAll(PDO::FETCH_ASSOC);
 <div class="modal fade" id="tableRecordsModal" tabindex="-1" aria-labelledby="tableRecordsModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content table-modal-content">
-            <div class="modal-header border-bottom-0 pb-0">
-                <h5 class="modal-title text-dark fw-bold" id="tableRecordsModalLabel"><i class="bi bi-card-list me-2 text-inspinia"></i> Recent Attendance Records</h5>
+            <div class="modal-header border-bottom-0 pb-0 align-items-start pt-3">
+                <h5 class="modal-title text-dark fw-bold mt-1" id="tableRecordsModalLabel"><i class="bi bi-card-list me-2 text-inspinia"></i> Recent Attendance Records</h5>
                 
-                <!-- Display Current Week's Monday -->
-                <span class="ms-auto me-3 text-muted small fw-medium" style="background: #f8f9fa; padding: 5px 12px; border-radius: 6px; border: 1px solid #dee2e6;">
-                    <i class="bi bi-calendar-week me-1"></i><?php echo htmlspecialchars($displayMondayDate); ?>
-                </span>
+                <!-- Display Current Week's Monday & Refresh Reminder -->
+                <div class="ms-auto me-3 d-flex flex-column align-items-end">
+                    <span class="text-muted small fw-medium" style="background: #f8f9fa; padding: 5px 12px; border-radius: 6px; border: 1px solid #dee2e6;">
+                        <i class="bi bi-calendar-week me-1"></i><?php echo htmlspecialchars($displayMondayDate); ?>
+                    </span>
+                    <small class="text-muted mt-1" style="font-size: 11px;">
+                        <i class="bi bi-info-circle me-1"></i>Refreshes every Monday at 12:00 AM
+                    </small>
+                </div>
 
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <button type="button" class="btn-close mt-1" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body pb-4">
                 

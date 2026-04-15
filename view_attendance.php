@@ -42,8 +42,20 @@ if (isset($_POST['action']) && $_POST['action'] === 'fetch_date_attendance') {
         $stmt->execute(['ceremony_date' => $ceremony_date]);
         $records = $stmt->fetchAll();
 
+        $totalCount = 0;
+        $compliantCount = 0;
+        $nonCompliantCount = 0;
+
         if ($records) {
             foreach ($records as $row) {
+                // Update Statistics Counters
+                $totalCount++;
+                if ($row['is_compliant'] == 1) {
+                    $compliantCount++;
+                } else {
+                    $nonCompliantCount++;
+                }
+
                 $formattedTime = date('h:i A', strtotime($row['time_recorded']));
                 $fullDateTime = date('M d, Y - h:i A', strtotime($row['time_recorded']));
                 
@@ -87,11 +99,29 @@ if (isset($_POST['action']) && $_POST['action'] === 'fetch_date_attendance') {
                 }
                 $html .= "</tr>";
             }
+            
+            // Inject script to update the stats UI securely when this HTML chunk is loaded
+            $html .= "<script>
+                        if(document.getElementById('stat_total')) {
+                            document.getElementById('stat_total').innerText = '{$totalCount}';
+                            document.getElementById('stat_compliant').innerText = '{$compliantCount}';
+                            document.getElementById('stat_noncompliant').innerText = '{$nonCompliantCount}';
+                            document.getElementById('attendance_stats_container').style.display = 'flex';
+                        }
+                      </script>";
+
         } else {
             $html .= "<tr class='no-data-row'><td colspan='12' class='text-center text-muted py-4'>
                         <i class='fa fa-folder-open-o fa-2x mb-2 d-block'></i>
                         <em>No attendees found for this date.</em>
                       </td></tr>";
+                      
+            // Inject script to hide the stats UI when there are no records
+            $html .= "<script>
+                        if(document.getElementById('attendance_stats_container')) {
+                            document.getElementById('attendance_stats_container').style.display = 'none';
+                        }
+                      </script>";
         }
     } catch (\PDOException $e) {
         $html .= "<tr><td colspan='12' class='text-center text-danger'>Error: " . $e->getMessage() . "</td></tr>";
@@ -114,6 +144,28 @@ if (isset($_POST['action']) && $_POST['action'] === 'fetch_date_attendance') {
       </div>
       <div class="modal-body p-3">
         <h4 class="mb-3">Attendance Records for: <strong id="ceremony_date_display" class="text-primary"></strong></h4>
+        
+        <!-- ATTENDANCE STATISTICS CARDS -->
+        <div class="row mb-3" id="attendance_stats_container" style="display: none;">
+            <div class="col-md-4">
+                <div class="p-3 bg-light border border-info rounded text-center shadow-sm">
+                    <h6 class="text-info mb-1"><i class="fa fa-users"></i> Total Attendees</h6>
+                    <h3 class="mb-0 text-info font-weight-bold" id="stat_total">0</h3>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="p-3 bg-light border border-success rounded text-center shadow-sm">
+                    <h6 class="text-success mb-1"><i class="fa fa-check-circle"></i> Compliant</h6>
+                    <h3 class="mb-0 text-success font-weight-bold" id="stat_compliant">0</h3>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="p-3 bg-light border border-danger rounded text-center shadow-sm">
+                    <h6 class="text-danger mb-1"><i class="fa fa-times-circle"></i> Non-Compliant</h6>
+                    <h3 class="mb-0 text-danger font-weight-bold" id="stat_noncompliant">0</h3>
+                </div>
+            </div>
+        </div>
         
         <div class="table-responsive border" style="max-height: 550px; overflow-y: auto;">
             <table class="table table-bordered table-striped table-hover mb-0 mt-0">

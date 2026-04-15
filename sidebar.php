@@ -24,7 +24,10 @@ if (isset($_SESSION['fullname']) && !empty($_SESSION['fullname'])) {
     left: 0;     /* Anchors the sidebar to the left of the viewport */
     height: 100vh;
     overflow-y: auto; /* Allows scrolling INSIDE the sidebar if the menu gets too long */
-    z-index: 2000;
+    
+    /* Changed z-index from 2000 to 1030 so SweetAlert2 (z-index: 1060) 
+       and Bootstrap Modals (z-index: 1050) can properly cover it */
+    z-index: 1030; 
   }
 
   /* Adds a visual separator and spacing for the about us item */
