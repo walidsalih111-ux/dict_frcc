@@ -29,7 +29,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     } catch (Exception $e) {}
     
     if (!$pdo) {
-        echo "<tr><td colspan='4' class='text-center text-danger'>Database connection failed.</td></tr>";
+        echo "<tr><td colspan='6' class='text-center text-danger'>Database connection failed.</td></tr>";
         exit;
     }
     
@@ -37,8 +37,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         $query = "SELECT 
                 e.emp_id, 
                 e.full, 
-                MAX(a.time_recorded) AS time_recorded,
-                SUBSTRING_INDEX(GROUP_CONCAT(a.status ORDER BY a.status DESC SEPARATOR ','), ',', 1) AS status
+                e.designation,
+                e.department,
+                e.unit,
+                e.area_of_assignment,
+                MAX(a.time_recorded) AS time_recorded
             FROM attendance_record a
             JOIN employees e ON a.emp_id = e.emp_id
             WHERE DATE(a.time_recorded) = :targetDate
@@ -52,7 +55,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             $params['area'] = $area;
         }
 
-        $query .= " GROUP BY e.emp_id, e.full ORDER BY time_recorded DESC";
+        $query .= " GROUP BY e.emp_id, e.full, e.designation, e.department, e.unit, e.area_of_assignment ORDER BY time_recorded DESC";
         
         $stmt = $pdo->prepare($query);
         $stmt->execute($params);
@@ -61,21 +64,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         if ($rows) {
             foreach ($rows as $row) {
                 $fullName = htmlspecialchars(ucwords($row['full'] ?? 'N/A'));
-                $statusText = htmlspecialchars($row['status'] ?? 'N/A');
+                $designation = htmlspecialchars($row['designation'] ?? 'N/A');
+                $division = htmlspecialchars($row['department'] ?? 'N/A');
+                $unit = htmlspecialchars($row['unit'] ?? 'N/A');
+                $areaOfAssignment = htmlspecialchars($row['area_of_assignment'] ?? 'N/A');
                 $formattedTime = !empty($row['time_recorded']) ? htmlspecialchars(date('M d, Y - h:i A', strtotime($row['time_recorded']))) : 'N/A';
 
                 echo "<tr>";
-                echo "<td>" . htmlspecialchars($row['emp_id']) . "</td>";
                 echo "<td>" . $fullName . "</td>";
+                echo "<td>" . $designation . "</td>";
+                echo "<td>" . $division . "</td>";
+                echo "<td>" . $unit . "</td>";
+                echo "<td>" . $areaOfAssignment . "</td>";
                 echo "<td>" . $formattedTime . "</td>";
-                echo "<td class='text-center'>" . $statusText . "</td>";
                 echo "</tr>";
             }
         } else {
-            echo "<tr><td colspan='4' class='text-center text-muted py-4'><i class='fa fa-folder-open-o fa-2x mb-2 d-block'></i><em>No employees found for this category on this date.</em></td></tr>";
+            echo "<tr><td colspan='6' class='text-center text-muted py-4'><i class='fa fa-folder-open-o fa-2x mb-2 d-block'></i><em>No employees found for this category on this date.</em></td></tr>";
         }
     } catch (PDOException $e) {
-        echo "<tr><td colspan='4' class='text-center text-danger'>Error: " . htmlspecialchars($e->getMessage()) . "</td></tr>";
+        echo "<tr><td colspan='6' class='text-center text-danger'>Error: " . htmlspecialchars($e->getMessage()) . "</td></tr>";
     }
     exit;
 }
@@ -457,15 +465,17 @@ $pieDataJson = json_encode([$compliantCount, $nonCompliantCount]);
               <table class="table table-bordered table-striped mb-0">
                 <thead>
                   <tr>
-                    <th>Employee ID</th>
                     <th>Full Name</th>
+                    <th>Designation</th>
+                    <th>Division</th>
+                    <th>Unit</th>
+                    <th>Area of Assignment</th>
                     <th>Most Recent Time</th>
-                    <th class="text-center">Status</th>
                   </tr>
                 </thead>
                 <tbody id="compliance_list_body">
                   <tr>
-                    <td colspan="4" class="text-center text-muted py-4">
+                    <td colspan="6" class="text-center text-muted py-4">
                       <i class="fa fa-info-circle fa-2x mb-2 d-block"></i>
                       <em>Click the Compliant or Non-Compliant card to see the employee list.</em>
                     </td>
@@ -519,7 +529,12 @@ $pieDataJson = json_encode([$compliantCount, $nonCompliantCount]);
             maintainAspectRatio: false,
             legend: { display: false },
             scales: {
-                xAxes: [{ ticks: { beginAtZero: true } }],
+                xAxes: [{ 
+                    ticks: { 
+                        beginAtZero: true,
+                        stepSize: 1 // Forces the axis to use whole numbers
+                    } 
+                }],
                 yAxes: [{}]
             }
         };
@@ -545,6 +560,21 @@ $pieDataJson = json_encode([$compliantCount, $nonCompliantCount]);
             maintainAspectRatio: false,
             legend: {
                 position: 'bottom'
+            },
+            tooltips: {
+                callbacks: {
+                    label: function(tooltipItem, data) {
+                        var dataset = data.datasets[tooltipItem.datasetIndex];
+                        var currentValue = dataset.data[tooltipItem.index];
+                        // Calculate total for percentage
+                        var total = 0;
+                        for (var i = 0; i < dataset.data.length; i++) {
+                            total += parseFloat(dataset.data[i]);
+                        }
+                        var percentage = total > 0 ? ((currentValue / total) * 100).toFixed(2) + '%' : '0.00%';
+                        return data.labels[tooltipItem.index] + ': ' + currentValue + ' (' + percentage + ')';
+                    }
+                }
             }
         };
 
@@ -566,7 +596,7 @@ $pieDataJson = json_encode([$compliantCount, $nonCompliantCount]);
                 modalTitle += ' (' + selectedArea + ')';
             }
 
-            var loadingRow = '<tr><td colspan="4" class="text-center text-muted py-4"><i class="fa fa-spinner fa-spin fa-2x mb-2 d-block"></i><em>Loading list...</em></td></tr>';
+            var loadingRow = '<tr><td colspan="6" class="text-center text-muted py-4"><i class="fa fa-spinner fa-spin fa-2x mb-2 d-block"></i><em>Loading list...</em></td></tr>';
 
             $('#complianceModalLabel').text(modalTitle);
             $('#compliance_list_body').html(loadingRow);
@@ -584,7 +614,7 @@ $pieDataJson = json_encode([$compliantCount, $nonCompliantCount]);
                     $('#compliance_list_body').html(response);
                 },
                 error: function() {
-                    $('#compliance_list_body').html('<tr><td colspan="4" class="text-center text-danger py-4"><i class="fa fa-exclamation-triangle fa-2x mb-2 d-block"></i><em>Unable to load employees. Please refresh and try again.</em></td></tr>');
+                    $('#compliance_list_body').html('<tr><td colspan="6" class="text-center text-danger py-4"><i class="fa fa-exclamation-triangle fa-2x mb-2 d-block"></i><em>Unable to load employees. Please refresh and try again.</em></td></tr>');
                 }
             });
         });

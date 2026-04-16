@@ -116,15 +116,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             background-color: rgba(255, 255, 255, 0.98);
             border-radius: 12px;
             box-shadow: 0 10px 40px rgba(0,0,0,0.4);
-            animation: fadeIn 0.6s ease-out;
             width: 100%;
             max-width: 900px;
             overflow: hidden;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(-15px); }
-            to { opacity: 1; transform: translateY(0); }
         }
 
         /* Left Side (Branding & Clock) */
@@ -162,12 +156,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             padding: 10px 14px;
             font-size: 14px;
             box-shadow: none;
-            transition: border-color 0.15s ease-in-out 0s;
         }
         .form-control:focus { border-color: #1ab394; box-shadow: none; }
 
         /* Buttons */
-        .btn { border-radius: 4px; font-size: 14px; font-weight: 600; padding: 10px 15px; transition: all 0.2s; }
+        .btn { border-radius: 4px; font-size: 14px; font-weight: 600; padding: 10px 15px; }
         .btn-primary { background-color: #1ab394; border-color: #1ab394; color: #FFFFFF; }
         .btn-primary:hover, .btn-primary:focus, .btn-primary:active { background-color: #18a689 !important; border-color: #18a689 !important; color: #FFFFFF !important; }
         .btn-white { color: inherit; background: white; border: 1px solid #e7eaec; }

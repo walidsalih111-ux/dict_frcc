@@ -88,9 +88,10 @@ $attendance_records = $tableStmt->fetchAll(PDO::FETCH_ASSOC);
                 <!-- Show Entries Dropdown -->
                 <div class="row mb-3 mt-2 align-items-center">
                     <div class="col-sm-12">
-                        <form method="GET" action="index.php" class="d-inline-flex align-items-center" id="entriesForm">
+                        <!-- Removed onchange submit to let AJAX handle the change smoothly -->
+                        <form method="GET" action="index.php" class="d-inline-flex align-items-center" id="entriesForm" onsubmit="return false;">
                             <label class="mb-0 me-2 text-muted fw-normal">Show</label>
-                            <select name="limit" class="form-select form-select-sm w-auto d-inline-block shadow-none" onchange="document.getElementById('entriesForm').submit();">
+                            <select name="limit" class="form-select form-select-sm w-auto d-inline-block shadow-none">
                                 <option value="10" <?php echo $limit == 10 ? 'selected' : ''; ?>>10</option>
                                 <option value="25" <?php echo $limit == 25 ? 'selected' : ''; ?>>25</option>
                                 <option value="50" <?php echo $limit == 50 ? 'selected' : ''; ?>>50</option>
@@ -106,7 +107,7 @@ $attendance_records = $tableStmt->fetchAll(PDO::FETCH_ASSOC);
                     <table class="table table-hover align-middle mb-0">
                         <thead>
                             <tr>
-                                <th>Date & Time</th>
+                                <th>Time</th>
                                 <th>Employee Name</th>
                                 <th class="text-center">Status</th>   
                             </tr>
@@ -126,15 +127,17 @@ $attendance_records = $tableStmt->fetchAll(PDO::FETCH_ASSOC);
                                     ?>
                                     <tr>
                                         <td>
-                                            <strong><?php echo date('M d, Y', strtotime($record['time_recorded'])); ?></strong><br>
-                                            <div class="mt-1 d-flex align-items-center">
-                                                <small class="text-muted"><i class="bi bi-clock me-1"></i><?php echo date('h:i A', strtotime($record['time_recorded'])); ?></small>
-                                            </div>
+                                            <strong><i class="bi bi-clock me-1 text-muted"></i><?php echo date('h:i A', strtotime($record['time_recorded'])); ?></strong>
                                         </td>
                                         
                                         <td>
                                             <strong><?php echo htmlspecialchars($record['full'] ?? 'N/A'); ?></strong><br>
-                                            <small class="text-muted"><?php echo htmlspecialchars($record['designation'] ?? 'N/A'); ?></small>
+                                            <small class="text-muted d-block mt-1" style="line-height: 1.2;">
+                                                <?php echo htmlspecialchars($record['designation'] ?? 'N/A'); ?>
+                                            </small>
+                                            <small class="text-muted d-block mt-1" style="line-height: 1.2;">
+                                                <i class="bi bi-diagram-3 me-1"></i><?php echo htmlspecialchars(!empty($record['unit']) ? $record['unit'] : (!empty($record['department']) ? $record['department'] : 'N/A')); ?>
+                                            </small>
                                         </td>
                                         
                                         <td class="text-center">
@@ -209,3 +212,65 @@ $attendance_records = $tableStmt->fetchAll(PDO::FETCH_ASSOC);
         </div>
     </div>
 </div>
+
+<!-- AJAX Pagination Script for the Modal -->
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const modal = document.getElementById('tableRecordsModal');
+    if (!modal) return;
+    
+    // Listen for clicks on pagination links
+    modal.addEventListener('click', function(e) {
+        const pageLink = e.target.closest('.page-link');
+        // Prevent default behavior if it's a valid link
+        if (pageLink && pageLink.hasAttribute('href') && !pageLink.parentElement.classList.contains('disabled')) {
+            e.preventDefault();
+            updateModalContent(pageLink.getAttribute('href'));
+        }
+    });
+
+    // Listen for changes on the Show Entries dropdown
+    modal.addEventListener('change', function(e) {
+        if (e.target.name === 'limit') {
+            const limit = e.target.value;
+            const url = new URL(window.location.href);
+            url.searchParams.set('limit', limit);
+            url.searchParams.set('page', 1); // Reset to page 1 on limit change
+            updateModalContent(url.toString());
+        }
+    });
+
+    // Function to fetch and replace modal body smoothly
+    function updateModalContent(url) {
+        const modalBody = modal.querySelector('.modal-body');
+        
+        // Visual feedback for loading state
+        modalBody.style.opacity = '0.5';
+        modalBody.style.pointerEvents = 'none';
+
+        fetch(url)
+            .then(response => response.text())
+            .then(html => {
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, 'text/html');
+                const newBody = doc.querySelector('#tableRecordsModal .modal-body');
+                
+                if (newBody) {
+                    modalBody.innerHTML = newBody.innerHTML;
+                }
+                
+                // Restore interactivity
+                modalBody.style.opacity = '1';
+                modalBody.style.pointerEvents = 'auto';
+                
+                // Update URL silently so refresh still works on the current page context
+                window.history.pushState({path: url}, '', url);
+            })
+            .catch(error => {
+                console.error('Error fetching pagination data:', error);
+                modalBody.style.opacity = '1';
+                modalBody.style.pointerEvents = 'auto';
+            });
+    }
+});
+</script>

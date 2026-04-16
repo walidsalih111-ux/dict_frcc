@@ -42,7 +42,7 @@ $can_sign_in = $is_monday || $is_unlocked;
 try {
     $colCheck = $pdo->query("SHOW COLUMNS FROM attendance_record LIKE 'status'");
     if ($colCheck->rowCount() == 0) {
-        $pdo->exec("ALTER TABLE attendance_record ADD COLUMN status ENUM('Signed in', 'Late') DEFAULT 'Signed in' AFTER is_asean");
+        $pdo->exec("ALTER TABLE attendance_record ADD COLUMN status ENUM('On Time', 'Late') DEFAULT 'On Time' AFTER is_asean");
     }
 } catch (PDOException $e) {}
 
@@ -73,12 +73,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $message = "Action denied. Attendance is only open on Mondays or on admin-unlocked dates.";
             $messageType = "error";
         } else {
-            // 1. Gather Basic Variables
             $emp_id = $_POST['emp_id'];
-            $with_id = $_POST['with_id'] ?? 'No';
-            $is_asean = $_POST['is_asean'] ?? 'No';
-            $photo_data = $_POST['photo_data'] ?? null;
-            $photo_path = null;
+            // Check if already submitted today
+            $checkSql = "SELECT COUNT(*) FROM attendance_record WHERE emp_id = ? AND DATE(time_recorded) = ?";
+            $checkStmt = $pdo->prepare($checkSql);
+            $checkStmt->execute([$emp_id, $current_date]);
+            if ($checkStmt->fetchColumn() > 0) {
+                $message = "Attendance already submitted for today.";
+                $messageType = "error";
+            } else {
+                // 1. Gather Basic Variables
+                $with_id = $_POST['with_id'] ?? 'No';
+                $is_asean = $_POST['is_asean'] ?? 'No';
+                $photo_data = $_POST['photo_data'] ?? null;
+                $photo_path = null;
 
             // 2. NEW COMPLIANCE LOGIC
             $is_compliant = 0; // Default to 0 (non-compliant)
@@ -149,6 +157,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         }
     }
 }
+}
 
 // Fetch Employees for the Dropdown Form
 try {
@@ -204,15 +213,9 @@ try {
             background-color: rgba(255, 255, 255, 0.98);
             border-radius: 12px;
             box-shadow: 0 10px 40px rgba(0,0,0,0.4);
-            animation: fadeIn 0.6s ease-out;
             width: 100%;
             max-width: 900px;
             overflow: hidden; /* Contains the border-radius for child elements */
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(-15px); }
-            to { opacity: 1; transform: translateY(0); }
         }
 
         /* Left Side (Branding & Clock) */
@@ -250,13 +253,12 @@ try {
             padding: 10px 14px;
             font-size: 14px;
             box-shadow: none;
-            transition: border-color 0.15s ease-in-out 0s;
         }
         .form-control:focus { border-color: #1ab394; box-shadow: none; }
         .form-control:disabled { background-color: #f8f9fa; cursor: not-allowed; }
 
         /* Buttons */
-        .btn { border-radius: 4px; font-size: 14px; font-weight: 600; padding: 10px 15px; transition: all 0.2s; }
+        .btn { border-radius: 4px; font-size: 14px; font-weight: 600; padding: 10px 15px; }
         .btn-primary { background-color: #1ab394; border-color: #1ab394; color: #FFFFFF; }
         .btn-primary:hover, .btn-primary:focus, .btn-primary:active { background-color: #18a689 !important; border-color: #18a689 !important; color: #FFFFFF !important; }
         .btn-white { color: inherit; background: white; border: 1px solid #e7eaec; }

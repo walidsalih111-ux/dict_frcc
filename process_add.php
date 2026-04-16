@@ -23,6 +23,24 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $password = $_POST['password'] ?? '';
     $role = $_POST['role'] ?? 'user';
 
+    // 0. Check for existing employee with the same Name OR Email
+    // Using emp_email != '' to ensure empty emails don't trigger false duplicate positives
+    $check_sql = "SELECT emp_id FROM employees WHERE full = ? OR (emp_email = ? AND emp_email != '')";
+    $stmt_check = $conn->prepare($check_sql);
+    $stmt_check->bind_param("ss", $full, $emp_email);
+    $stmt_check->execute();
+    $stmt_check->store_result();
+
+    if ($stmt_check->num_rows > 0) {
+        // A duplicate employee exists!
+        $stmt_check->close();
+        // Redirect back to management page with duplicate employee error
+        header("Location: employee_management.php?error=duplicate_employee");
+        exit();
+    }
+    $stmt_check->close();
+
+
     // Hash the password securely
     $hashed_password = password_hash($password, PASSWORD_DEFAULT);
 
@@ -60,9 +78,13 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         
         // Check if the error is a duplicate username
         if ($e->getCode() == 1062) { // 1062 is MySQL duplicate entry error
-            die("Error: The username '$username' is already taken. Please go back and choose another.");
+            header("Location: employee_management.php?error=duplicate_username");
+            exit();
         } else {
-            die("Database error during insert: " . $e->getMessage());
+            // Log general db errors and redirect
+            error_log("Database error during insert: " . $e->getMessage());
+            header("Location: employee_management.php?error=db_error");
+            exit();
         }
     }
 } else {

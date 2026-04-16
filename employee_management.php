@@ -202,10 +202,9 @@ $role_query = $conn->query("SELECT DISTINCT role FROM user_account WHERE role IS
                                     <table class="table table-striped table-bordered table-hover dataTables-example">
                                         <thead>
                                             <tr>
-                                                <th>ID</th>
                                                 <th>Full Name</th>
                                                 <th>Email</th>
-                                                <th>Department</th>
+                                                <th>Division</th>
                                                 <th>Area of Assignment</th>
                                                 <th>Designation</th>
                                                 <th>Status</th>
@@ -243,7 +242,6 @@ $role_query = $conn->query("SELECT DISTINCT role FROM user_account WHERE role IS
                                                     }
 
                                                     echo '<tr>';
-                                                    echo '<td>' . htmlspecialchars($row['emp_id'] ?? '') . '</td>';
                                                     echo '<td>' . htmlspecialchars($row['full'] ?? '') . '</td>';
                                                     echo '<td>' . htmlspecialchars($row['emp_email'] ?? '') . '</td>';
                                                     echo '<td>' . htmlspecialchars($row['department'] ?? '') . '</td>';
@@ -252,6 +250,13 @@ $role_query = $conn->query("SELECT DISTINCT role FROM user_account WHERE role IS
                                                     echo '<td><span class="badge ' . $statusBadge . '">' . htmlspecialchars($row['status'] ?? '') . '</span></td>';
                                                     echo '<td><span class="badge ' . $roleBadge . '">' . htmlspecialchars($roleText) . '</span></td>';
                                                     
+                                                    // Determine whether the employee already has a user account
+                                                    $hasAccount = !empty($row['username']);
+                                                    $statusBtnClass = $hasAccount ? 'btn-warning' : 'btn-success';
+                                                    $statusBtnLabel = $hasAccount ? 'Deactivate' : 'Activate';
+                                                    $statusBtnIcon = $hasAccount ? 'fa-user-times' : 'fa-user-plus';
+                                                    $accountStatusValue = $hasAccount ? 'active' : 'inactive';
+
                                                     // Action Buttons with ALL Data Attributes for the Edit Modal
                                                     echo '<td>
                                                             <button class="btn btn-info btn-sm edit-btn" title="Edit" 
@@ -270,12 +275,12 @@ $role_query = $conn->query("SELECT DISTINCT role FROM user_account WHERE role IS
                                                                 data-toggle="modal" data-target="#editEmployeeModal">
                                                                 <i class="fa fa-edit"></i>
                                                             </button>
-                                                            <button class="btn btn-danger btn-sm delete-btn" data-id="'.$row['emp_id'].'" title="Delete"><i class="fa fa-trash"></i></button>
+                                                            <button class="btn '.$statusBtnClass.' btn-sm status-btn" data-id="'.$row['emp_id'].'" data-account-status="'.$accountStatusValue.'" title="'.$statusBtnLabel.' Account"><i class="fa '.$statusBtnIcon.'"></i> '.$statusBtnLabel.'</button>
                                                           </td>';
                                                     echo '</tr>';
                                                 }
                                             } else {
-                                                echo '<tr><td colspan="9" class="text-center">No employees found.</td></tr>';
+                                                echo '<tr><td colspan="8" class="text-center">No employees found.</td></tr>';
                                             }
                                             ?>
                                         </tbody>
@@ -322,6 +327,49 @@ $role_query = $conn->query("SELECT DISTINCT role FROM user_account WHERE role IS
     <!-- Script to Initialize DataTables -->
     <script>
         $(document).ready(function(){
+            
+            // ==========================================
+            // Handle URL Parameters for Alerts
+            // ==========================================
+            const urlParams = new URLSearchParams(window.location.search);
+            const msg = urlParams.get('msg');
+            const error = urlParams.get('error');
+
+            if (msg === 'add_success') {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Added Successfully!',
+                    text: 'The new employee was successfully added.',
+                    confirmButtonColor: '#1cc88a'
+                });
+                window.history.replaceState({}, document.title, window.location.pathname);
+            } else if (error === 'duplicate_employee') {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Duplicate Found!',
+                    text: 'An employee with this exact Name or Email already exists in the system.',
+                    confirmButtonColor: '#e74a3b'
+                });
+                window.history.replaceState({}, document.title, window.location.pathname);
+            } else if (error === 'duplicate_username') {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Username Taken!',
+                    text: 'The user account could not be created because the username is already taken. Please try another.',
+                    confirmButtonColor: '#e74a3b'
+                });
+                window.history.replaceState({}, document.title, window.location.pathname);
+            } else if (error === 'db_error') {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Database Error!',
+                    text: 'An unexpected error occurred while saving. Please try again.',
+                    confirmButtonColor: '#e74a3b'
+                });
+                window.history.replaceState({}, document.title, window.location.pathname);
+            }
+
+
             // Initialize DataTables for Search and Pagination (Show Entries)
             var table = $('.dataTables-example').DataTable({
                 pageLength: 10,
@@ -331,47 +379,59 @@ $role_query = $conn->query("SELECT DISTINCT role FROM user_account WHERE role IS
 
             // Bind filters to corresponding columns
             
-            // Filter by Department (Column index 3)
+            // Filter by Department (Column index 2 now)
             $('#filter-department').on('change', function() {
+                table.column(2).search(this.value).draw();
+            });
+
+            // Filter by Area of Assignment (Column index 3 now)
+            $('#filter-area').on('change', function() {
                 table.column(3).search(this.value).draw();
             });
 
-            // Filter by Area of Assignment (Column index 4)
-            $('#filter-area').on('change', function() {
-                table.column(4).search(this.value).draw();
+            // Filter by Status (Column index 5 now)
+            $('#filter-status').on('change', function() {
+                table.column(5).search(this.value).draw();
             });
 
-            // Filter by Status (Column index 6)
-            $('#filter-status').on('change', function() {
+            // Filter by Role (Column index 6 now)
+            $('#filter-role').on('change', function() {
                 table.column(6).search(this.value).draw();
             });
 
-            // Filter by Role (Column index 7)
-            $('#filter-role').on('change', function() {
-                table.column(7).search(this.value).draw();
-            });
-
-            // Delete Employee Button Handler
-            $(document).on('click', '.delete-btn', function(e) {
+            // Account Status Button Handler (Activate / Deactivate)
+            $(document).on('click', '.status-btn', function(e) {
                 e.preventDefault();
                 const empId = $(this).data('id');
-                const empName = $(this).closest('tr').find('td:eq(1)').text(); // Get employee name from row
+                const accountStatus = $(this).data('account-status');
+                const empName = $(this).closest('tr').find('td:eq(0)').text();
+                const actionLabel = accountStatus === 'active' ? 'Deactivate' : 'Activate';
+                const confirmText = accountStatus === 'active'
+                    ? `Are you sure you want to deactivate ${empName}'s user account?`
+                    : `${empName} does not currently have an account. Please add a user account through the Edit modal.`;
+
+                if (accountStatus === 'inactive') {
+                    const editBtn = $(this).closest('td').find('.edit-btn');
+                    if (editBtn.length) {
+                        editBtn.trigger('click');
+                    }
+                    return;
+                }
 
                 Swal.fire({
-                    title: 'Delete Employee?',
-                    text: `Are you sure you want to delete ${empName}? This action cannot be undone.`,
+                    title: `${actionLabel} Account?`,
+                    text: confirmText,
                     icon: 'warning',
                     showCancelButton: true,
-                    confirmButtonColor: '#e74a3b',
+                    confirmButtonColor: '#f6c23e',
                     cancelButtonColor: '#6c757d',
-                    confirmButtonText: 'Yes, Delete!',
+                    confirmButtonText: `${actionLabel}`,
                     cancelButtonText: 'Cancel'
                 }).then((result) => {
                     if (result.isConfirmed) {
-                        // Show loading state and immediately start the AJAX call
                         Swal.fire({
-                            title: 'Deleting...',
-                            text: 'Please wait while we delete this employee.',
+                            title: `${actionLabel}ing...`,
+                            text: 'Please wait while we update the account status.',
                             icon: 'info',
                             allowOutsideClick: false,
                             allowEscapeKey: false,
@@ -381,26 +441,22 @@ $role_query = $conn->query("SELECT DISTINCT role FROM user_account WHERE role IS
                             }
                         });
 
-                        // Send delete request via AJAX with timeout
                         $.ajax({
-                            url: 'process_delete.php',
+                            url: 'process_account_status.php',
                             type: 'POST',
                             dataType: 'json',
-                            data: { id: empId },
-                            timeout: 10000, // 10 second timeout
+                            data: { emp_id: empId, action: 'deactivate' },
+                            timeout: 10000,
                             success: function(result) {
                                 if (result && result.status === 'success') {
                                     Swal.fire({
                                         icon: 'success',
-                                        title: 'Deleted!',
+                                        title: 'Updated!',
                                         text: result.message,
                                         confirmButtonColor: '#1cc88a',
                                         timer: 2000,
                                         showConfirmButton: false
-                                    }).then(() => {
-                                        // Reload the page to refresh the table
-                                        location.reload();
-                                    });
+                                    }).then(() => location.reload());
                                 } else {
                                     Swal.fire({
                                         icon: 'error',
@@ -411,24 +467,21 @@ $role_query = $conn->query("SELECT DISTINCT role FROM user_account WHERE role IS
                                 }
                             },
                             error: function(xhr, status, error) {
-                                let errorMessage = 'Failed to delete employee. Please try again.';
+                                let errorMessage = 'Failed to update account status. Please try again.';
                                 if (status === 'timeout') {
                                     errorMessage = 'Request timed out. Please check your connection and try again.';
                                 } else if (xhr.status === 0) {
                                     errorMessage = 'Unable to connect to server. Please check your internet connection.';
                                 } else if (xhr.status >= 500) {
                                     errorMessage = 'Server error occurred. Please try again later.';
-                                } else if (xhr.responseText) {
-                                    console.error('Server response:', xhr.responseText);
                                 }
-
                                 Swal.fire({
                                     icon: 'error',
                                     title: 'Error',
                                     text: errorMessage,
                                     confirmButtonColor: '#e74a3b'
                                 });
-                                console.error('Delete error:', error);
+                                console.error('Account status error:', error);
                             }
                         });
                     }

@@ -40,25 +40,54 @@ $limit = isset($_GET['limit']) && in_array((int)$_GET['limit'], [10, 25, 50]) ? 
 $page = isset($_GET['page']) && is_numeric($_GET['page']) && (int)$_GET['page'] > 0 ? (int)$_GET['page'] : 1;
 $offset = ($page - 1) * $limit;
 
+// Get date filter
+$dateFilter = isset($_GET['date']) && !empty($_GET['date']) ? $_GET['date'] : null;
+
 // Fetch total records for calculating pagination pages
 $countSql = "SELECT COUNT(*) FROM attendance_record a JOIN employees e ON a.emp_id = e.emp_id WHERE e.full = :fullname";
+if ($dateFilter) {
+    $countSql .= " AND DATE(a.time_recorded) = :date";
+}
 $countStmt = $pdo->prepare($countSql);
 $countStmt->bindParam(':fullname', $_SESSION['fullname'], PDO::PARAM_STR);
+if ($dateFilter) {
+    $countStmt->bindParam(':date', $dateFilter, PDO::PARAM_STR);
+}
 $countStmt->execute();
 $totalRecords = $countStmt->fetchColumn();
 $totalPages = ceil($totalRecords / $limit);
+
+// Fetch compliance summary
+$complianceSql = "SELECT 
+    SUM(CASE WHEN TIME(a.time_recorded) <= '08:00:00' AND a.with_id = 'Yes' AND a.is_asean = 'Yes' THEN 1 ELSE 0 END) as compliant,
+    SUM(CASE WHEN NOT (TIME(a.time_recorded) <= '08:00:00' AND a.with_id = 'Yes' AND a.is_asean = 'Yes') THEN 1 ELSE 0 END) as non_compliant
+FROM attendance_record a
+JOIN employees e ON a.emp_id = e.emp_id
+WHERE e.full = :fullname";
+$complianceStmt = $pdo->prepare($complianceSql);
+$complianceStmt->bindParam(':fullname', $_SESSION['fullname'], PDO::PARAM_STR);
+$complianceStmt->execute();
+$complianceData = $complianceStmt->fetch(PDO::FETCH_ASSOC);
+$compliantCount = $complianceData['compliant'] ?? 0;
+$nonCompliantCount = $complianceData['non_compliant'] ?? 0;
 
 // 6. Fetch the attendance records for the logged-in user with pagination
 $sql = "SELECT a.designation, a.with_id, a.is_asean, a.is_compliant, a.time_recorded, a.photo_path, 
                e.area_of_assignment, e.department, e.unit 
         FROM attendance_record a
         JOIN employees e ON a.emp_id = e.emp_id
-        WHERE e.full = :fullname 
-        ORDER BY a.time_recorded DESC
+        WHERE e.full = :fullname";
+if ($dateFilter) {
+    $sql .= " AND DATE(a.time_recorded) = :date";
+}
+$sql .= " ORDER BY a.time_recorded DESC
         LIMIT " . (int)$limit . " OFFSET " . (int)$offset;
 
 $stmt = $pdo->prepare($sql);
 $stmt->bindParam(':fullname', $_SESSION['fullname'], PDO::PARAM_STR);
+if ($dateFilter) {
+    $stmt->bindParam(':date', $dateFilter, PDO::PARAM_STR);
+}
 $stmt->execute();
 $attendance_records = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
@@ -317,9 +346,34 @@ $attendance_records = $stmt->fetchAll(PDO::FETCH_ASSOC);
                     
                     <div class="ibox-content">
 
-                        <!-- Show Entries Dropdown (Inspinia DataTables Style) -->
+                        <!-- Compliance Summary Card -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <div class="card border-0 shadow-sm" style="background: linear-gradient(135deg, #1ab394 0%, #18a689 100%); color: white;">
+                                    <div class="card-body text-center">
+                                        <h5 class="card-title mb-3"><i class="bi bi-bar-chart-line me-2"></i>Attendance Compliance Summary</h5>
+                                        <div class="row">
+                                            <div class="col-6">
+                                                <div class="d-flex flex-column align-items-center">
+                                                    <span class="h2 mb-1"><?php echo $compliantCount; ?></span>
+                                                    <span class="small">Compliant</span>
+                                                </div>
+                                            </div>
+                                            <div class="col-6">
+                                                <div class="d-flex flex-column align-items-center">
+                                                    <span class="h2 mb-1"><?php echo $nonCompliantCount; ?></span>
+                                                    <span class="small">Non-Compliant</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Show Entries Dropdown and Date Search -->
                         <div class="row mb-3 align-items-center">
-                            <div class="col-sm-12">
+                            <div class="col-sm-6">
                                 <form method="GET" action="my_attendance.php" class="d-inline-flex align-items-center" id="entriesForm">
                                     <label class="mb-0 me-2 text-muted fw-normal">Show</label>
                                     <select name="limit" class="form-select form-select-sm w-auto d-inline-block shadow-none" onchange="document.getElementById('entriesForm').submit();">
@@ -329,8 +383,21 @@ $attendance_records = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                     </select>
                                     <label class="mb-0 ms-2 text-muted fw-normal">entries</label>
                                     
-                                    <!-- Preserve page context if possible (optional) -->
-                                    <input type="hidden" name="page" value="1"> 
+                                    <!-- Preserve page and date context -->
+                                    <input type="hidden" name="page" value="1">
+                                    <?php if ($dateFilter): ?>
+                                        <input type="hidden" name="date" value="<?php echo htmlspecialchars($dateFilter); ?>">
+                                    <?php endif; ?>
+                                </form>
+                            </div>
+                            <div class="col-sm-6 d-flex justify-content-end">
+                                <form method="GET" action="my_attendance.php" class="d-flex" id="dateSearchForm">
+                                    <input type="date" name="date" class="form-control form-control-sm me-2" value="<?php echo htmlspecialchars($dateFilter ?? ''); ?>" style="width: 150px;">
+                                    <input type="hidden" name="limit" value="<?php echo $limit; ?>">
+                                    <button type="submit" class="btn btn-sm btn-primary me-2">Search</button>
+                                    <?php if ($dateFilter): ?>
+                                        <a href="my_attendance.php?limit=<?php echo $limit; ?>" class="btn btn-sm btn-secondary">Clear</a>
+                                    <?php endif; ?>
                                 </form>
                             </div>
                         </div>
@@ -443,7 +510,7 @@ $attendance_records = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                     <ul class="pagination pagination-sm mb-0">
                                         <!-- Previous Button -->
                                         <li class="page-item <?php echo $page <= 1 ? 'disabled' : ''; ?>">
-                                            <a class="page-link" href="?limit=<?php echo $limit; ?>&page=<?php echo $page - 1; ?>">Previous</a>
+                                            <a class="page-link" href="?limit=<?php echo $limit; ?>&page=<?php echo $page - 1; ?><?php echo $dateFilter ? '&date=' . urlencode($dateFilter) : ''; ?>">Previous</a>
                                         </li>
                                         
                                         <!-- Page Numbers -->
@@ -453,7 +520,7 @@ $attendance_records = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                             $endPage = min($totalPages, $page + 2);
                                             
                                             if ($startPage > 1) {
-                                                echo '<li class="page-item"><a class="page-link" href="?limit=' . $limit . '&page=1">1</a></li>';
+                                                echo '<li class="page-item"><a class="page-link" href="?limit=' . $limit . '&page=1' . ($dateFilter ? '&date=' . urlencode($dateFilter) : '') . '">1</a></li>';
                                                 if ($startPage > 2) {
                                                     echo '<li class="page-item disabled"><span class="page-link">...</span></li>';
                                                 }
@@ -461,7 +528,7 @@ $attendance_records = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
                                             for ($i = $startPage; $i <= $endPage; $i++): ?>
                                                 <li class="page-item <?php echo $page == $i ? 'active' : ''; ?>">
-                                                    <a class="page-link" href="?limit=<?php echo $limit; ?>&page=<?php echo $i; ?>"><?php echo $i; ?></a>
+                                                    <a class="page-link" href="?limit=<?php echo $limit; ?>&page=<?php echo $i; ?><?php echo $dateFilter ? '&date=' . urlencode($dateFilter) : ''; ?>"><?php echo $i; ?></a>
                                                 </li>
                                             <?php endfor; 
                                             
@@ -469,13 +536,13 @@ $attendance_records = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                                 if ($endPage < $totalPages - 1) {
                                                     echo '<li class="page-item disabled"><span class="page-link">...</span></li>';
                                                 }
-                                                echo '<li class="page-item"><a class="page-link" href="?limit=' . $limit . '&page=' . $totalPages . '">' . $totalPages . '</a></li>';
+                                                echo '<li class="page-item"><a class="page-link" href="?limit=' . $limit . '&page=' . $totalPages . ($dateFilter ? '&date=' . urlencode($dateFilter) : '') . '">' . $totalPages . '</a></li>';
                                             }
                                         ?>
 
                                         <!-- Next Button -->
                                         <li class="page-item <?php echo $page >= $totalPages ? 'disabled' : ''; ?>">
-                                            <a class="page-link" href="?limit=<?php echo $limit; ?>&page=<?php echo $page + 1; ?>">Next</a>
+                                            <a class="page-link" href="?limit=<?php echo $limit; ?>&page=<?php echo $page + 1; ?><?php echo $dateFilter ? '&date=' . urlencode($dateFilter) : ''; ?>">Next</a>
                                         </li>
                                     </ul>
                                 <?php endif; ?>

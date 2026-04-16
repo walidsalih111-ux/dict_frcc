@@ -31,8 +31,6 @@ try {
 
     <link href="css/bootstrap.min.css" rel="stylesheet" />
     <link href="font-awesome/css/font-awesome.css" rel="stylesheet" />
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
     <link href="https://cdn.datatables.net/1.10.24/css/dataTables.bootstrap4.min.css" rel="stylesheet">
     <link href="https://cdn.datatables.net/responsive/2.2.7/css/responsive.bootstrap4.min.css" rel="stylesheet">
     
@@ -67,8 +65,6 @@ try {
         .ibox-content { background: transparent !important; border-radius: 0 0 15px 15px !important; }
         .navbar-static-top { background: rgba(255, 255, 255, 0.95) !important; box-shadow: 0 2px 10px rgba(0,0,0,0.05) !important; border-bottom: none !important; }
         div.dataTables_wrapper div.dataTables_filter input, div.dataTables_wrapper div.dataTables_length select { border-radius: 8px; border: 1px solid #ddd; padding: 4px 8px; }
-        .modal-content { border-radius: 15px; border: none; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
-        .modal-header { border-radius: 15px 15px 0 0; }
     </style>
   </head>
 
@@ -137,13 +133,9 @@ try {
                                         echo "<td><span style='display:none;'>".$row['ceremony_date']."</span>" . $formattedDate . "</td>";
                                         echo "<td><span class='badge badge-primary'>" . htmlspecialchars($row['attendee_count']) . " Employees</span></td>";
                                         echo "<td class='text-center'>
-                                                <button class='btn btn-success btn-sm btn-view-date' title='View Attendees'
-                                                    data-toggle='modal' 
-                                                    data-target='#attendanceModal'
-                                                    data-date='" . htmlspecialchars($row['ceremony_date']) . "'
-                                                    data-formatted='" . htmlspecialchars($formattedDate) . "'>
+                                                <a href='view_attendance.php?date=" . htmlspecialchars($row['ceremony_date']) . "' target='_blank' class='btn btn-success btn-sm' title='View Attendees'>
                                                     <i class='fa fa-users'></i> View Attendees
-                                                </button>
+                                                </a>
                                               </td>";
                                         echo "</tr>";
                                     }
@@ -163,8 +155,6 @@ try {
         </div>
       </div>
     </div>
-
-    <?php include 'view_attendance.php'; ?>
     
     <script src="js/jquery-3.1.1.min.js"></script>
     <script src="js/popper.min.js"></script>
@@ -233,24 +223,6 @@ try {
             $('#clearDate').click(function(){
                 calendarSearch.clear();
                 table.column(0).search('').draw();
-            });
-
-            // View Attendees functionality
-            $('.dataTables-dates tbody').on('click', '.btn-view-date', function () {
-                var btn = $(this);
-                var rawDate = btn.data('date');
-                var formattedDate = btn.data('formatted');
-
-                $('#ceremony_date_display').text(formattedDate);
-                $('#attendance_records_body').html('<tr><td colspan="10" class="text-center text-muted py-4"><i class="fa fa-spinner fa-spin fa-2x mb-2 d-block"></i><em>Loading attendees...</em></td></tr>');
-
-                $.ajax({
-                    url: 'view_attendance.php',
-                    type: 'POST',
-                    data: { action: 'fetch_date_attendance', ceremony_date: rawDate },
-                    success: function(response) { $('#attendance_records_body').html(response); },
-                    error: function() { $('#attendance_records_body').html('<tr><td colspan="10" class="text-center text-danger py-4"><i class="fa fa-exclamation-triangle fa-2x mb-2 d-block"></i><em>Failed to retrieve data. Check your connection.</em></td></tr>'); }
-                });
             });
 
             $('#logout-btn').on('click', function(e) {
