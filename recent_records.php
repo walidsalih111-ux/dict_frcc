@@ -1,13 +1,37 @@
 <?php
-// --- DATE LOGIC (WEEKLY REFRESH) ---
+// --- DATE LOGIC (WEEKLY OR UNLOCKED DATE REFRESH) ---
 // Calculate the most recent Monday at 12:00 AM (00:00:00)
 $dt = new DateTime();
+$today = new DateTime();
+$today->setTime(0, 0, 0);
+
 if ($dt->format('N') != 1) { // If today is not Monday (1)
     $dt->modify('last monday');
 }
 $dt->setTime(0, 0, 0);
-$startOfWeek = $dt->format('Y-m-d H:i:s');
-$displayMondayDate = $dt->format('F d, Y'); // For the modal header display
+$startDate = clone $dt;
+
+// Check for any recently unlocked date that is <= today
+try {
+    $stmt = $pdo->prepare("SELECT MAX(target_date) FROM unlocked_dates WHERE target_date <= :today");
+    $stmt->execute(['today' => $today->format('Y-m-d')]);
+    $recentUnlockedDate = $stmt->fetchColumn();
+    
+    if ($recentUnlockedDate) {
+        $unlockedDt = new DateTime($recentUnlockedDate);
+        $unlockedDt->setTime(0, 0, 0);
+        
+        // If the unlocked date is newer than the last Monday, use it as the new start date
+        if ($unlockedDt > $startDate) {
+            $startDate = clone $unlockedDt;
+        }
+    }
+} catch (PDOException $e) {
+    // Table might not exist yet, proceed with normal Monday logic
+}
+
+$startOfWeek = $startDate->format('Y-m-d H:i:s');
+$displayMondayDate = $startDate->format('F d, Y'); // For the modal header display
 
 // --- DATA TABLE PAGINATION & FETCHING ---
 // Define allowed limits and get current page/limit from URL
@@ -15,7 +39,7 @@ $limit = isset($_GET['limit']) && in_array((int)$_GET['limit'], [10, 25, 50]) ? 
 $page = isset($_GET['page']) && is_numeric($_GET['page']) && (int)$_GET['page'] > 0 ? (int)$_GET['page'] : 1;
 $offset = ($page - 1) * $limit;
 
-// Fetch total records for calculating pagination pages (Filtered by this week)
+// Fetch total records for calculating pagination pages (Filtered by this week/unlocked date)
 $countSql = "SELECT COUNT(*) FROM attendance_record a 
              JOIN employees e ON a.emp_id = e.emp_id 
              WHERE a.time_recorded >= :startOfWeek";
@@ -24,7 +48,7 @@ $countStmt->execute(['startOfWeek' => $startOfWeek]);
 $totalRecords = $countStmt->fetchColumn();
 $totalPages = ceil($totalRecords / $limit);
 
-// Fetch the attendance records across all employees (Filtered by this week)
+// Fetch the attendance records across all employees (Filtered by this week/unlocked date)
 $tableSql = "SELECT a.designation, a.with_id, a.is_asean, a.status, a.is_compliant, a.time_recorded, a.photo_path, 
                e.full, e.area_of_assignment, e.department, e.unit 
         FROM attendance_record a
@@ -47,13 +71,13 @@ $attendance_records = $tableStmt->fetchAll(PDO::FETCH_ASSOC);
             <div class="modal-header border-bottom-0 pb-0 align-items-start pt-3">
                 <h5 class="modal-title text-dark fw-bold mt-1" id="tableRecordsModalLabel"><i class="bi bi-card-list me-2 text-inspinia"></i> Recent Attendance Records</h5>
                 
-                <!-- Display Current Week's Monday & Refresh Reminder -->
+                <!-- Display Current Start Date & Refresh Reminder -->
                 <div class="ms-auto me-3 d-flex flex-column align-items-end">
                     <span class="text-muted small fw-medium" style="background: #f8f9fa; padding: 5px 12px; border-radius: 6px; border: 1px solid #dee2e6;">
                         <i class="bi bi-calendar-week me-1"></i><?php echo htmlspecialchars($displayMondayDate); ?>
                     </span>
                     <small class="text-muted mt-1" style="font-size: 11px;">
-                        <i class="bi bi-info-circle me-1"></i>Refreshes every Monday at 12:00 AM
+                        <i class="bi bi-info-circle me-1"></i>Refreshes every Monday or Unlocked Date
                     </small>
                 </div>
 
@@ -117,7 +141,7 @@ $attendance_records = $tableStmt->fetchAll(PDO::FETCH_ASSOC);
                                             <?php if (isset($record['status']) && $record['status'] === 'Late'): ?>
                                                 <span class="label label-danger"><i class="bi bi-exclamation-circle me-1"></i>Late</span>
                                             <?php else: ?>
-                                                <span class="label label-primary"><i class="bi bi-check-circle me-1"></i>On Time</span>
+                                                <span class="label label-primary"><i class="bi bi-check-circle me-1"></i>Signed In</span>
                                             <?php endif; ?>
                                         </td>
                                     </tr>
@@ -125,7 +149,7 @@ $attendance_records = $tableStmt->fetchAll(PDO::FETCH_ASSOC);
                             <?php else: ?>
                                 <tr>
                                     <td colspan="3" class="text-center text-muted py-5">
-                                        <h5 class="fw-medium mb-1 mt-3">No Records Yet This Week</h5>
+                                        <h5 class="fw-medium mb-1 mt-3">No Records Yet Since Reset</h5>
                                         <p class="small text-muted mb-4">Waiting for the first attendance entry since <?php echo htmlspecialchars($displayMondayDate); ?>.</p>
                                     </td>
                                 </tr>

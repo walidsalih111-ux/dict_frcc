@@ -7,6 +7,19 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
 }
 
 include 'connect.php'; 
+
+// Fetch unlocked dates for the calendar filter
+$unlocked_dates_array = [];
+try {
+    $stmt_unlocked = $pdo->query("SELECT target_date FROM unlocked_dates");
+    if ($stmt_unlocked) {
+        while ($row = $stmt_unlocked->fetch(PDO::FETCH_ASSOC)) {
+            $unlocked_dates_array[] = $row['target_date'];
+        }
+    }
+} catch (\PDOException $e) {
+    // If the table doesn't exist yet or there's an error, the array remains empty
+}
 ?>
 <!doctype html>
 <html>
@@ -23,7 +36,7 @@ include 'connect.php';
     <link href="https://cdn.datatables.net/1.10.24/css/dataTables.bootstrap4.min.css" rel="stylesheet">
     <link href="https://cdn.datatables.net/responsive/2.2.7/css/responsive.bootstrap4.min.css" rel="stylesheet">
     
-    <!-- Flatpickr for Monday-only Calendar -->
+    <!-- Flatpickr for Calendar Filter -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
 
     <link href="css/animate.css" rel="stylesheet" />
@@ -83,12 +96,12 @@ include 'connect.php';
                         <!-- Custom Filter Template (Hidden initially, moved by JS) -->
                         <div id="custom-date-filter" style="display: none;">
                             <div class="d-flex align-items-center justify-content-md-end">
-                                <label for="mondaySearch" class="font-weight-bold mr-2 mb-0" style="white-space: nowrap;">Filter (Mondays Only):</label>
+                                <label for="mondaySearch" class="font-weight-bold mr-2 mb-0" style="white-space: nowrap;">Filter (Mondays & Unlocked):</label>
                                 <div class="input-group input-group-sm mr-2" style="max-width: 200px;">
                                     <div class="input-group-prepend">
                                         <span class="input-group-text"><i class="fa fa-calendar"></i></span>
                                     </div>
-                                    <input type="text" id="mondaySearch" class="form-control" placeholder="Select Monday..." style="background-color: white;">
+                                    <input type="text" id="mondaySearch" class="form-control" placeholder="Select Date..." style="background-color: white;">
                                 </div>
                                 <button id="clearDate" class="btn btn-warning btn-sm" title="Clear Filter"><i class="fa fa-times"></i></button>
                             </div>
@@ -172,6 +185,9 @@ include 'connect.php';
     <script src="js/plugins/pace/pace.min.js"></script>
 
     <script>
+        // Pass the unlocked dates from PHP to JavaScript
+        var unlockedDates = <?php echo json_encode($unlocked_dates_array); ?>;
+
         $(document).ready(function(){
             var table = $('.dataTables-dates').DataTable({
                 pageLength: 25,
@@ -186,17 +202,28 @@ include 'connect.php';
             // Inject the custom calendar filter into the DataTables top-right section
             $('#custom-date-filter').css('display', 'block').appendTo('.custom-filter-wrapper');
 
-            // Initialize Flatpickr for Monday search
+            // Initialize Flatpickr for Monday search + Unlocked dates
             var calendarSearch = flatpickr("#mondaySearch", {
                 disable: [
                     function(date) {
-                        // Return true to disable specific days. 
-                        // Disable any day that is NOT a Monday (getDay() !== 1)
-                        return (date.getDay() !== 1);
+                        // Format the current JS date to YYYY-MM-DD
+                        var d = new Date(date);
+                        var month = '' + (d.getMonth() + 1);
+                        var day = '' + d.getDate();
+                        var year = d.getFullYear();
+
+                        if (month.length < 2) month = '0' + month;
+                        if (day.length < 2) day = '0' + day;
+
+                        var dateString = [year, month, day].join('-');
+
+                        // Return true to disable the date. 
+                        // Disable if it is NOT a Monday AND NOT in the unlockedDates array
+                        return (date.getDay() !== 1 && unlockedDates.indexOf(dateString) === -1);
                     }
                 ],
                 onChange: function(selectedDates, dateStr, instance) {
-                    // When a valid Monday is selected, filter the DataTable on the 1st column 
+                    // When a valid date is selected, filter the DataTable on the 1st column 
                     // which contains the invisible raw date string inside a span
                     table.column(0).search(dateStr).draw();
                 }

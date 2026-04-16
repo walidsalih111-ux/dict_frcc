@@ -17,10 +17,19 @@ if (!$pdo) {
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'fetch_compliance_list') {
     $status = isset($_POST['status']) && $_POST['status'] === '1' ? 1 : 0;
     $area = isset($_POST['area']) ? $_POST['area'] : ''; // Fetch area filter from AJAX
-    $mondayDate = date('Y-m-d', strtotime(date('l') === 'Monday' ? 'today' : 'last Monday'));
+    
+    // Determine active target date
+    $targetDate = date('Y-m-d', strtotime(date('l') === 'Monday' ? 'today' : 'last Monday'));
+    try {
+        $stmtUnlock = $pdo->query("SELECT target_date FROM unlocked_dates ORDER BY target_date DESC LIMIT 1");
+        $latestUnlock = $stmtUnlock->fetchColumn();
+        if ($latestUnlock && strtotime($latestUnlock) >= strtotime($targetDate)) {
+            $targetDate = $latestUnlock;
+        }
+    } catch (Exception $e) {}
     
     if (!$pdo) {
-        echo "<tr><td colspan='5' class='text-center text-danger'>Database connection failed.</td></tr>";
+        echo "<tr><td colspan='4' class='text-center text-danger'>Database connection failed.</td></tr>";
         exit;
     }
     
@@ -32,10 +41,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 SUBSTRING_INDEX(GROUP_CONCAT(a.status ORDER BY a.status DESC SEPARATOR ','), ',', 1) AS status
             FROM attendance_record a
             JOIN employees e ON a.emp_id = e.emp_id
-            WHERE DATE(a.time_recorded) = :mondayDate
+            WHERE DATE(a.time_recorded) = :targetDate
               AND a.is_compliant = :status";
               
-        $params = ['status' => $status, 'mondayDate' => $mondayDate];
+        $params = ['status' => $status, 'targetDate' => $targetDate];
         
         // Apply area filter if selected
         if ($area !== '') {
@@ -63,10 +72,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 echo "</tr>";
             }
         } else {
-            echo "<tr><td colspan='4' class='text-center text-muted py-4'><i class='fa fa-folder-open-o fa-2x mb-2 d-block'></i><em>No employees found for this category this Monday.</em></td></tr>";
+            echo "<tr><td colspan='4' class='text-center text-muted py-4'><i class='fa fa-folder-open-o fa-2x mb-2 d-block'></i><em>No employees found for this category on this date.</em></td></tr>";
         }
     } catch (PDOException $e) {
-        echo "<tr><td colspan='5' class='text-center text-danger'>Error: " . htmlspecialchars($e->getMessage()) . "</td></tr>";
+        echo "<tr><td colspan='4' class='text-center text-danger'>Error: " . htmlspecialchars($e->getMessage()) . "</td></tr>";
     }
     exit;
 }
@@ -119,13 +128,29 @@ try {
     }
     $areaData = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    // 6. Get Compliant & Non-Compliant for This Week (Monday Only)
-    // Find the date of the most recent Monday (or today if today is Monday)
-    $mondayDate = date('Y-m-d', strtotime(date('l') === 'Monday' ? 'today' : 'last Monday'));
+    // 6. Get Active Event Date & Unlock Dates Information
+    $targetDate = date('Y-m-d', strtotime(date('l') === 'Monday' ? 'today' : 'last Monday'));
+    $dateLabel = "This Monday";
+    
+    // Fetch latest unlock dates to show in the wrapper
+    $latestUnlockDates = [];
+    try {
+        $stmtUnlockDates = $pdo->query("SELECT target_date FROM unlocked_dates ORDER BY target_date DESC LIMIT 2");
+        $latestUnlockDates = $stmtUnlockDates->fetchAll(PDO::FETCH_COLUMN);
+        
+        if (!empty($latestUnlockDates)) {
+            $newestUnlock = $latestUnlockDates[0];
+            // Update dashboard statistics to point to the newest unlock date if it's more recent
+            if (strtotime($newestUnlock) >= strtotime($targetDate)) {
+                $targetDate = $newestUnlock;
+                $dateLabel = "Unlocked Date";
+            }
+        }
+    } catch (PDOException $e) { }
 
-    // Compliant Employees (Monday only, Filtered by Area if applicable)
+    // Compliant Employees (Filtered by Area if applicable)
     $compliantQuery = "SELECT COUNT(DISTINCT a.emp_id) FROM attendance_record a JOIN employees e ON a.emp_id = e.emp_id WHERE a.is_compliant = 1 AND DATE(a.time_recorded) = :date";
-    $compParams = ['date' => $mondayDate];
+    $compParams = ['date' => $targetDate];
     if ($selectedArea) {
         $compliantQuery .= " AND e.area_of_assignment = :area";
         $compParams['area'] = $selectedArea;
@@ -134,9 +159,9 @@ try {
     $stmt->execute($compParams);
     $compliantCount = $stmt->fetchColumn();
 
-    // Non-Compliant Employees (Monday only, Filtered by Area if applicable)
+    // Non-Compliant Employees (Filtered by Area if applicable)
     $nonCompliantQuery = "SELECT COUNT(DISTINCT a.emp_id) FROM attendance_record a JOIN employees e ON a.emp_id = e.emp_id WHERE a.is_compliant = 0 AND DATE(a.time_recorded) = :date";
-    $nonCompParams = ['date' => $mondayDate];
+    $nonCompParams = ['date' => $targetDate];
     if ($selectedArea) {
         $nonCompliantQuery .= " AND e.area_of_assignment = :area";
         $nonCompParams['area'] = $selectedArea;
@@ -150,7 +175,7 @@ try {
     $chartData = [];
     foreach ($areaData as $area) {
         $stmt = $pdo->prepare("SELECT COUNT(DISTINCT a.emp_id) FROM attendance_record a JOIN employees e ON a.emp_id = e.emp_id WHERE a.is_compliant = 1 AND DATE(a.time_recorded) = ? AND e.area_of_assignment = ?");
-        $stmt->execute([$mondayDate, $area['area_of_assignment']]);
+        $stmt->execute([$targetDate, $area['area_of_assignment']]);
         $chartData[] = $stmt->fetchColumn();
     }
     $chartLabel = 'Compliant Employees';
@@ -307,7 +332,7 @@ $pieDataJson = json_encode([$compliantCount, $nonCompliantCount]);
           </div>
           <?php endif; ?>
 
-          <!-- ================= NEW AREA FILTER ROW (Yellow Line Area) ================= -->
+          <!-- ================= NEW AREA FILTER ROW ================= -->
           <div class="row mb-3">
               <div class="col-lg-12 d-flex justify-content-end">
                   <form method="GET" action="dashboard.php" class="d-flex align-items-center bg-white px-3 py-2 rounded shadow-sm" style="border-radius: 20px !important;">
@@ -328,15 +353,29 @@ $pieDataJson = json_encode([$compliantCount, $nonCompliantCount]);
 
           <div class="row">
             <div class="col-lg-4">
-                <div class="ibox clickable" onclick="window.location.href='data_table.php'" title="View Data Table">
+                <div class="ibox clickable" onclick="window.location.href='unlock_dates.php'" title="Manage Unlock Dates">
                     <div class="ibox-title">
                         <span class="badge bg-success float-end float-right">Event</span>
                         <h5>Flag Raising Ceremony</h5>
                     </div>
                     <div class="ibox-content">
-                        <h1 class="no-margins"><?php echo date('M d, Y', strtotime($mondayDate)); ?></h1>
-                        <div class="stat-percent font-bold text-success"><i class="fa fa-flag"></i></div>
-                        <small>Recent/Upcoming Monday</small>
+                        <?php if (!empty($latestUnlockDates)): ?>
+                            <h2 class="no-margins" style="font-size: 22px; font-weight: 600; line-height: 1.3;">
+                                <?php 
+                                    $displays = [];
+                                    foreach($latestUnlockDates as $ud) {
+                                        $displays[] = date('M d, Y', strtotime($ud));
+                                    }
+                                    echo implode('<br>', $displays);
+                                ?>
+                            </h2>
+                            <div class="stat-percent font-bold text-success"><i class="fa fa-unlock-alt"></i></div>
+                            <small>Latest Unlock Dates</small>
+                        <?php else: ?>
+                            <h1 class="no-margins"><?php echo date('M d, Y', strtotime($targetDate)); ?></h1>
+                            <div class="stat-percent font-bold text-success"><i class="fa fa-flag"></i></div>
+                            <small>Recent/Upcoming Monday</small>
+                        <?php endif; ?>
                     </div>
                 </div>
             </div>
@@ -344,7 +383,7 @@ $pieDataJson = json_encode([$compliantCount, $nonCompliantCount]);
             <div class="col-lg-4">
                 <div class="ibox clickable" id="compliantCard" data-status="1">
                     <div class="ibox-title">
-                        <span class="badge bg-primary float-end float-right">This Monday</span>
+                        <span class="badge bg-primary float-end float-right"><?php echo $dateLabel; ?></span>
                         <h5>Compliant</h5>
                     </div>
                     <div class="ibox-content">
@@ -358,7 +397,7 @@ $pieDataJson = json_encode([$compliantCount, $nonCompliantCount]);
             <div class="col-lg-4">
                 <div class="ibox clickable" id="nonCompliantCard" data-status="0">
                     <div class="ibox-title">
-                        <span class="badge bg-danger float-end float-right">This Monday</span>
+                        <span class="badge bg-danger float-end float-right"><?php echo $dateLabel; ?></span>
                         <h5>Non-Compliant</h5>
                     </div>
                     <div class="ibox-content">
@@ -511,20 +550,23 @@ $pieDataJson = json_encode([$compliantCount, $nonCompliantCount]);
 
         var ctxPie = document.getElementById("statusPieChart").getContext("2d");
         new Chart(ctxPie, { type: "pie", data: pieData, options: pieOptions });
+        
         // 3. Clickable Compliance Cards (Modal Fetch)
+        var dateLabel = <?php echo json_encode($dateLabel); ?>;
+        
         $('.ibox.clickable[data-status]').on('click', function () {
             var status = $(this).data('status');
             var selectedArea = $('#areaFilter').val() || ''; // Grab selected area for the modal query
             
             var isCompliant = status === 1 || status === '1';
-            var modalTitle = isCompliant ? 'Compliant Attendees This Monday' : 'Non-Compliant Attendees This Monday';
+            var modalTitle = isCompliant ? ('Compliant Attendees - ' + dateLabel) : ('Non-Compliant Attendees - ' + dateLabel);
             
             // Append Area to title if filtered
             if(selectedArea !== '') {
                 modalTitle += ' (' + selectedArea + ')';
             }
 
-            var loadingRow = '<tr><td colspan="5" class="text-center text-muted py-4"><i class="fa fa-spinner fa-spin fa-2x mb-2 d-block"></i><em>Loading list...</em></td></tr>';
+            var loadingRow = '<tr><td colspan="4" class="text-center text-muted py-4"><i class="fa fa-spinner fa-spin fa-2x mb-2 d-block"></i><em>Loading list...</em></td></tr>';
 
             $('#complianceModalLabel').text(modalTitle);
             $('#compliance_list_body').html(loadingRow);
@@ -542,7 +584,7 @@ $pieDataJson = json_encode([$compliantCount, $nonCompliantCount]);
                     $('#compliance_list_body').html(response);
                 },
                 error: function() {
-                    $('#compliance_list_body').html('<tr><td colspan="5" class="text-center text-danger py-4"><i class="fa fa-exclamation-triangle fa-2x mb-2 d-block"></i><em>Unable to load employees. Please refresh and try again.</em></td></tr>');
+                    $('#compliance_list_body').html('<tr><td colspan="4" class="text-center text-danger py-4"><i class="fa fa-exclamation-triangle fa-2x mb-2 d-block"></i><em>Unable to load employees. Please refresh and try again.</em></td></tr>');
                 }
             });
         });

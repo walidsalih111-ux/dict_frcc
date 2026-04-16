@@ -79,6 +79,10 @@ if (isset($_SESSION['fullname']) && !empty($_SESSION['fullname'])) {
         <a href="data_table.php"><i class="fa fa-table"></i> <span class="nav-label">Flag Raising Ceremony</span></a>
       </li>
 
+      <li class="<?php echo (basename($_SERVER['PHP_SELF']) == 'unlock_dates.php') ? 'active' : ''; ?>">
+        <a href="unlock_dates.php"><i class="fa fa-unlock-alt"></i> <span class="nav-label">Unlock Dates</span></a>
+      </li>
+
       <li class="<?php echo (basename($_SERVER['PHP_SELF']) == 'employee_management.php') ? 'active' : ''; ?>">
         <a href="employee_management.php"><i class="fa fa-users"></i> <span class="nav-label">Employee Management</span></a>
       </li>

@@ -8,18 +8,41 @@ if (!$pdo) {
     die('Database connection failed: ' . ($db_error ?? 'Unknown error'));
 }
 
+// Ensure unlocked_dates table exists for holiday overrides
+try {
+    $pdo->exec("CREATE TABLE IF NOT EXISTS unlocked_dates (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        target_date DATE UNIQUE
+    )");
+} catch (PDOException $e) {
+    // ignore initialization errors; attendance logic will still work if table is unavailable
+}
+
 // Initialize variables
 $employees = [];
 $db_error = null;
 $message = null;
 $messageType = null;
+$current_date = date('Y-m-d');
 $is_monday = (date('l') === 'Monday'); // Check if today is Monday
+$is_unlocked = false;
+$can_sign_in = false;
+
+try {
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM unlocked_dates WHERE target_date = ?");
+    $stmt->execute([$current_date]);
+    $is_unlocked = ($stmt->fetchColumn() > 0);
+} catch (PDOException $e) {
+    $is_unlocked = false;
+}
+
+$can_sign_in = $is_monday || $is_unlocked;
 
 // Auto-add 'status' column to the database if it doesn't exist yet (Kept for database backward compatibility)
 try {
     $colCheck = $pdo->query("SHOW COLUMNS FROM attendance_record LIKE 'status'");
     if ($colCheck->rowCount() == 0) {
-        $pdo->exec("ALTER TABLE attendance_record ADD COLUMN status ENUM('On Time', 'Late') DEFAULT 'On Time' AFTER is_asean");
+        $pdo->exec("ALTER TABLE attendance_record ADD COLUMN status ENUM('Signed in', 'Late') DEFAULT 'Signed in' AFTER is_asean");
     }
 } catch (PDOException $e) {}
 
@@ -45,9 +68,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
     if ($action === 'mark_attendance' && isset($_POST['emp_id'])) {
         
-        // Backend safeguard: Block submission if it's not Monday
-        if (!$is_monday) {
-            $message = "Action denied. Attendance can only be recorded on Mondays.";
+        // Backend safeguard: Block submission if attendance is not open today
+        if (!$can_sign_in) {
+            $message = "Action denied. Attendance is only open on Mondays or on admin-unlocked dates.";
             $messageType = "error";
         } else {
             // 1. Gather Basic Variables
@@ -331,7 +354,7 @@ try {
             
             <div class="mb-4">
                 <label class="form-label text-muted fw-bold small mb-2 text-uppercase letter-spacing-1">Select Employee</label>
-                <select id="emp_id" name="emp_id" class="form-control" required <?php echo !$is_monday ? 'disabled' : ''; ?>>
+                <select id="emp_id" name="emp_id" class="form-control" required <?php echo !$can_sign_in ? 'disabled' : ''; ?>>
                     <option value=""></option> 
                     <?php foreach ($employees as $emp): ?>
                         <option value="<?php echo htmlspecialchars($emp['emp_id']); ?>">
@@ -348,7 +371,7 @@ try {
                         <i class="bi bi-person-vcard me-2 text-muted fs-5 align-middle"></i> Wearing your ID?
                     </label>
                     <div class="form-check form-switch m-0 p-0">
-                        <input class="form-check-input m-0 float-end" type="checkbox" role="switch" name="with_id" id="with_id" value="Yes" <?php echo !$is_monday ? 'disabled' : ''; ?>>
+                        <input class="form-check-input m-0 float-end" type="checkbox" role="switch" name="with_id" id="with_id" value="Yes" <?php echo !$can_sign_in ? 'disabled' : ''; ?>>
                     </div>
                 </div>
                 <div class="toggle-row pb-0">
@@ -356,18 +379,24 @@ try {
                         <i class="bi bi-suit-tie me-2 text-muted fs-5 align-middle"></i> Wearing Formal Attire?
                     </label>
                     <div class="form-check form-switch m-0 p-0">
-                        <input class="form-check-input m-0 float-end" type="checkbox" role="switch" name="is_asean" id="is_asean" value="Yes" <?php echo !$is_monday ? 'disabled' : ''; ?>>
+                        <input class="form-check-input m-0 float-end" type="checkbox" role="switch" name="is_asean" id="is_asean" value="Yes" <?php echo !$can_sign_in ? 'disabled' : ''; ?>>
                     </div>
                 </div>
             </div>
 
-            <?php if ($is_monday): ?>
+            <?php if ($is_unlocked && !$is_monday): ?>
+                <div class="alert alert-info text-center p-2 mb-3" style="font-size: 13px;">
+                    <i class="bi bi-info-circle-fill"></i> Attendance is open today because an admin unlocked this date.
+                </div>
+            <?php endif; ?>
+
+            <?php if ($can_sign_in): ?>
                 <button type="button" onclick="confirmSignIn()" class="btn btn-primary w-100 d-block py-2 mb-4">
                     <i class="bi bi-box-arrow-in-right me-1"></i> Submit Attendance
                 </button>
             <?php else: ?>
                 <div class="alert alert-warning text-center p-2 mb-3" style="font-size: 13px; background-color: #fcf8e3; border-color: #faebcc; color: #8a6d3b;">
-                    <i class="bi bi-info-circle-fill"></i> Attendance is only available on Mondays.
+                    <i class="bi bi-info-circle-fill"></i> Attendance is only available on Mondays unless an admin unlocks today.
                 </div>
                 <button type="button" class="btn w-100 d-block py-2 mb-4" disabled style="background-color: #e5e6e7; border-color: #e5e6e7; color: #888; cursor: not-allowed;">
                     <i class="bi bi-lock-fill me-1"></i> Sign In Locked

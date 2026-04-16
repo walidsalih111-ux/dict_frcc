@@ -342,7 +342,7 @@ $attendance_records = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                     <tr>
                                         <th>Date & Time Recorded</th>
                                         <th>Designation</th>
-                                        <th>Department</th>
+                                        <th>Division</th>
                                         <th>Unit</th>
                                         <th>Area of Assignment</th>
                                         <th class="text-center">With ID</th>

@@ -51,7 +51,7 @@
                     <div class="row">
                         <div class="col-md-6">
                             <div class="form-group">
-                                <label>Department</label>
+                                <label>Division</label>
                                 <select name="department" id="edit_department" class="form-control">
                                     <option value="">Select...</option>
                                     <option value="AFD">AFD</option>

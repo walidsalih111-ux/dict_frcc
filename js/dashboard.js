@@ -83,6 +83,10 @@ $(document).ready(function () {
     var sLabels = (window.statusLabels && window.statusLabels.length > 0) ? window.statusLabels : ["No Data"];
     var sCounts = (window.statusCounts && window.statusCounts.length > 0) ? window.statusCounts : [0];
 
+    var statusTotal = sCounts.reduce(function(sum, value) {
+        return sum + (parseFloat(value) || 0);
+    }, 0);
+
     var pieData = {
         labels: sLabels,
         datasets: [{
@@ -91,13 +95,64 @@ $(document).ready(function () {
             borderWidth: 0
         }]
     };
-    var pieOptions = { 
+
+    var pieOptions = {
         responsive: true,
-        maintainAspectRatio: false 
+        maintainAspectRatio: false,
+        tooltips: {
+            callbacks: {
+                label: function(tooltipItem, data) {
+                    var label = data.labels[tooltipItem.index] || '';
+                    var value = data.datasets[0].data[tooltipItem.index] || 0;
+                    var total = data.datasets[0].data.reduce(function(sum, val) {
+                        return sum + (parseFloat(val) || 0);
+                    }, 0);
+                    var percentage = total ? ((value / total) * 100).toFixed(1) : '0.0';
+                    return label + ': ' + value + ' (' + percentage + '%)';
+                }
+            }
+        }
     };
+
+    var statusPercentagePlugin = {
+        afterDatasetsDraw: function(chart) {
+            if (chart.config.type !== 'pie' && chart.config.type !== 'doughnut') {
+                return;
+            }
+            var ctx = chart.chart.ctx;
+            var meta = chart.getDatasetMeta(0);
+            var total = chart.data.datasets[0].data.reduce(function(sum, value) {
+                return sum + (parseFloat(value) || 0);
+            }, 0);
+
+            meta.data.forEach(function(segment, index) {
+                var value = chart.data.datasets[0].data[index];
+                if (total === 0 || !value) {
+                    return;
+                }
+                var percentage = ((value / total) * 100).toFixed(0);
+                var model = segment._model;
+                var midAngle = model.startAngle + (model.endAngle - model.startAngle) / 2;
+                var radius = model.outerRadius - (model.outerRadius - model.innerRadius) / 2;
+                var x = model.x + Math.cos(midAngle) * radius;
+                var y = model.y + Math.sin(midAngle) * radius;
+
+                ctx.save();
+                ctx.fillStyle = '#ffffff';
+                ctx.font = 'bold 12px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(percentage + '%', x, y);
+                ctx.restore();
+            });
+        }
+    };
+
+    Chart.plugins.register(statusPercentagePlugin);
+
     var ctxPie = document.getElementById("statusPieChart").getContext("2d");
     new Chart(ctxPie, { type: "pie", data: pieData, options: pieOptions });
-    
+
     
     // 5. Clickable Compliance Cards
     $('.ibox.clickable').on('click', function () {
