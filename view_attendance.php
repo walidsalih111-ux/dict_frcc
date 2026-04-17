@@ -312,7 +312,6 @@ try {
         <div class="modal-content border-0 shadow-lg" style="border-radius: 15px;">
             <div class="modal-header p-3 bg-light" style="border-radius: 15px 15px 0 0;">
                 <h5 class="modal-title text-primary fw-bold mb-0"><i class="fa fa-camera"></i> Attendance Snapshot</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" onclick="closePhotoModal()"></button>
             </div>
             <div class="modal-body text-center bg-dark p-2">
                 <img id="attendanceImagePreview" src="" alt="Captured Photo" class="img-fluid rounded" style="max-height: 500px; width: 100%; object-fit: contain;">
@@ -323,9 +322,6 @@ try {
                 </div>
             </div>
             <div class="modal-footer bg-light border-0 d-flex justify-content-center" style="border-radius: 0 0 15px 15px;">
-                <button type="button" class="btn btn-danger px-4 rounded-pill fw-bold shadow-sm" data-bs-dismiss="modal" onclick="closePhotoModal()">
-                    <i class="fa fa-sign-out"></i> Exit
-                </button>
             </div>
         </div>
     </div>
