@@ -367,6 +367,15 @@ $role_query = $conn->query("SELECT DISTINCT role FROM user_account WHERE role IS
                     confirmButtonColor: '#e74a3b'
                 });
                 window.history.replaceState({}, document.title, window.location.pathname);
+            } else if (error === 'admin_limit') {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Admin Limit Reached!',
+                    html: 'You cannot assign more than <strong>3 admins</strong>.<br>Please remove an existing admin before assigning a new one.',
+                    confirmButtonColor: '#f6c23e',
+                    confirmButtonText: 'Got it'
+                });
+                window.history.replaceState({}, document.title, window.location.pathname);
             }
 
 
