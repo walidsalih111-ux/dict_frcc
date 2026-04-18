@@ -12,7 +12,7 @@
       <ul class="nav navbar-top-links ms-auto d-flex align-items-center mb-0">
           <li class="nav-item pe-4">
               <span class="text-muted welcome-message fw-semibold">
-                  <i class="fa fa-clipboard-check text-success me-1"></i> DICT Monday Flag Raising Attendance and Compliance Checking System
+                  <i class="fa fa-clipboard-check text-success me-1"></i> DICT Monday Flag Raising Attendance and Compliance Checker
               </span>
           </li>
           

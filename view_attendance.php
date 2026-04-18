@@ -498,7 +498,7 @@ try {
                         { content: 'DESIGNATION', rowSpan: 2 },
                         { content: 'DIVISION', rowSpan: 2 },
                         { content: 'ID', rowSpan: 2 },
-                        { content: 'Properattire', rowSpan: 2 }
+                        { content: 'Proper Attire', rowSpan: 2 }
                     ],
                     [
                         'M', 'F'
