@@ -8,17 +8,15 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
 
 include 'connect.php'; 
 
-// Fetch unlocked dates for the calendar filter
-$unlocked_dates_array = [];
+// Fetch actual ceremony dates for the calendar filter
+$ceremony_dates_array = [];
 try {
-    $stmt_unlocked = $pdo->query("SELECT target_date FROM unlocked_dates");
-    if ($stmt_unlocked) {
-        while ($row = $stmt_unlocked->fetch(PDO::FETCH_ASSOC)) {
-            $unlocked_dates_array[] = $row['target_date'];
-        }
+    $stmt_dates = $pdo->query("SELECT DISTINCT DATE(time_recorded) as ceremony_date FROM attendance_record ORDER BY ceremony_date DESC");
+    while ($row = $stmt_dates->fetch(PDO::FETCH_ASSOC)) {
+        $ceremony_dates_array[] = $row['ceremony_date'];
     }
 } catch (\PDOException $e) {
-    // If the table doesn't exist yet or there's an error, the array remains empty
+    // array remains empty on error
 }
 ?>
 <!doctype html>
@@ -92,7 +90,7 @@ try {
                         <!-- Custom Filter Template (Hidden initially, moved by JS) -->
                         <div id="custom-date-filter" style="display: none;">
                             <div class="d-flex align-items-center justify-content-md-end">
-                                <label for="mondaySearch" class="font-weight-bold mr-2 mb-0" style="white-space: nowrap;">Filter (Mondays & Unlocked):</label>
+                                <label for="mondaySearch" class="font-weight-bold mr-2 mb-0" style="white-space: nowrap;">Filter by Date:</label>
                                 <div class="input-group input-group-sm mr-2" style="max-width: 200px;">
                                     <div class="input-group-prepend">
                                         <span class="input-group-text"><i class="fa fa-calendar"></i></span>
@@ -116,7 +114,6 @@ try {
                             <?php
                             if (isset($pdo)) {
                                 try {
-                                    // Use COUNT(DISTINCT emp_id) because one employee might have multiple logs (e.g. In/Out, with/without ID)
                                     $stmt = $pdo->query("
                                         SELECT DATE(time_recorded) as ceremony_date, COUNT(DISTINCT emp_id) as attendee_count 
                                         FROM attendance_record 
@@ -129,7 +126,6 @@ try {
                                         $formattedDate = $dateObj->format('F d, Y');
 
                                         echo "<tr class='gradeX'>";
-                                        // Invisible span added for precise Datatable Searching based on raw date string
                                         echo "<td><span style='display:none;'>".$row['ceremony_date']."</span>" . $formattedDate . "</td>";
                                         echo "<td><span class='badge badge-primary'>" . htmlspecialchars($row['attendee_count']) . " Employees</span></td>";
                                         echo "<td class='text-center'>
@@ -159,7 +155,7 @@ try {
     <script src="js/jquery-3.1.1.min.js"></script>
     <script src="js/popper.min.js"></script>
     <script src="js/bootstrap.js"></script>
-    <script src="js/plugins/metisMenu/jquery.metisMenu.js"></script>
+    <script src="js/plugins/metismenu/jquery.metisMenu.js"></script>
     <script src="js/plugins/slimscroll/jquery.slimscroll.min.js"></script>
 
     <script src="https://cdn.datatables.net/1.10.24/js/jquery.dataTables.min.js"></script>
@@ -175,15 +171,14 @@ try {
     <script src="js/plugins/pace/pace.min.js"></script>
 
     <script>
-        // Pass the unlocked dates from PHP to JavaScript
-        var unlockedDates = <?php echo json_encode($unlocked_dates_array); ?>;
+        // Only the actual ceremony dates from the database are selectable
+        var ceremonyDates = <?php echo json_encode($ceremony_dates_array); ?>;
 
         $(document).ready(function(){
             var table = $('.dataTables-dates').DataTable({
                 pageLength: 25,
                 responsive: true,
                 order: [[0, 'desc']],
-                // Custom DOM structure to completely remove the default search ('f') and create a placeholder for our filter
                 dom: "<'row mb-2'<'col-sm-12 col-md-6'l><'col-sm-12 col-md-6 custom-filter-wrapper'>>" +
                      "<'row'<'col-sm-12'tr>>" +
                      "<'row mt-2'<'col-sm-12 col-md-5'i><'col-sm-12 col-md-7'p>>"
@@ -192,29 +187,10 @@ try {
             // Inject the custom calendar filter into the DataTables top-right section
             $('#custom-date-filter').css('display', 'block').appendTo('.custom-filter-wrapper');
 
-            // Initialize Flatpickr for Monday search + Unlocked dates
+            // Initialize Flatpickr — only enable dates that have actual ceremony records
             var calendarSearch = flatpickr("#mondaySearch", {
-                disable: [
-                    function(date) {
-                        // Format the current JS date to YYYY-MM-DD
-                        var d = new Date(date);
-                        var month = '' + (d.getMonth() + 1);
-                        var day = '' + d.getDate();
-                        var year = d.getFullYear();
-
-                        if (month.length < 2) month = '0' + month;
-                        if (day.length < 2) day = '0' + day;
-
-                        var dateString = [year, month, day].join('-');
-
-                        // Return true to disable the date. 
-                        // Disable if it is NOT a Monday AND NOT in the unlockedDates array
-                        return (date.getDay() !== 1 && unlockedDates.indexOf(dateString) === -1);
-                    }
-                ],
+                enable: ceremonyDates,
                 onChange: function(selectedDates, dateStr, instance) {
-                    // When a valid date is selected, filter the DataTable on the 1st column 
-                    // which contains the invisible raw date string inside a span
                     table.column(0).search(dateStr).draw();
                 }
             });
