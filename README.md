@@ -37,6 +37,7 @@ April 18, 2026
 - Maximize 3 admins only
 - Employee's Username Duplication Check (Employee Management Page)
 - Re-type Password text field
+- Secret, basta comply lang sa flag ceremony on-time. Nakahidden ang status which means u may not know if you are late or on-time (8:30 am). arf arf
 
 April 06, 2026 – Update
 
