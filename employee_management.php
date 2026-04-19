@@ -9,7 +9,7 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
 include 'connect.php';
 
 // Fetch unique values for the filters from the database
-$dept_query = $conn->query("SELECT DISTINCT department FROM employees WHERE department IS NOT NULL AND department != '' ORDER BY department");
+$dept_query   = $conn->query("SELECT DISTINCT department FROM employees WHERE department IS NOT NULL AND department != '' ORDER BY department");
 $status_query = $conn->query("SELECT DISTINCT status FROM employees WHERE status IS NOT NULL AND status != '' ORDER BY status");
 
 // Fetch distinct roles from the user_account table for the role filter
@@ -98,13 +98,13 @@ $role_query = $conn->query("SELECT DISTINCT role FROM user_account WHERE role IS
         /* Match Primary/Success button themes */
         .btn-primary { background-color: #4e73df !important; border-color: #4e73df !important; }
         .btn-success { background-color: #1cc88a !important; border-color: #1cc88a !important; }
-        .btn-info { background-color: #36b9cc !important; border-color: #36b9cc !important; }
+        .btn-info    { background-color: #36b9cc !important; border-color: #36b9cc !important; }
         .text-success { color: #1cc88a !important; }
         .text-primary { color: #4e73df !important; }
-        .text-info { color: #36b9cc !important; }
-        .bg-success { background-color: #1cc88a !important; }
-        .bg-primary { background-color: #4e73df !important; }
-        .bg-info { background-color: #36b9cc !important; }
+        .text-info    { color: #36b9cc !important; }
+        .bg-success   { background-color: #1cc88a !important; }
+        .bg-primary   { background-color: #4e73df !important; }
+        .bg-info      { background-color: #36b9cc !important; }
     </style>
 </head>
 
@@ -145,8 +145,8 @@ $role_query = $conn->query("SELECT DISTINCT role FROM user_account WHERE role IS
                                         <select id="filter-department" class="form-control form-select">
                                             <option value="">All Departments</option>
                                             <?php 
-                                            if($dept_query) {
-                                                while($row = $dept_query->fetch_assoc()) { 
+                                            if ($dept_query) {
+                                                while ($row = $dept_query->fetch_assoc()) { 
                                                     echo '<option value="'.htmlspecialchars($row['department']).'">'.htmlspecialchars($row['department']).'</option>'; 
                                                 }
                                             } 
@@ -171,28 +171,27 @@ $role_query = $conn->query("SELECT DISTINCT role FROM user_account WHERE role IS
                                         <select id="filter-status" class="form-control form-select">
                                             <option value="">All Statuses</option>
                                             <?php 
-                                            if($status_query) {
-                                                while($row = $status_query->fetch_assoc()) { 
+                                            if ($status_query) {
+                                                while ($row = $status_query->fetch_assoc()) { 
                                                     echo '<option value="'.htmlspecialchars($row['status']).'">'.htmlspecialchars($row['status']).'</option>'; 
                                                 }
                                             } 
                                             ?>
                                         </select>
                                     </div>
-                                    <!-- New Role Filter -->
+                                    <!-- Role Filter -->
                                     <div class="col-md-3 mb-3">
                                         <label for="filter-role" class="form-label font-weight-bold">Role</label>
                                         <select id="filter-role" class="form-control form-select">
                                             <option value="">All Roles</option>
                                             <?php 
-                                            if($role_query) {
-                                                while($row = $role_query->fetch_assoc()) { 
+                                            if ($role_query) {
+                                                while ($row = $role_query->fetch_assoc()) { 
                                                     // Display uppercase first letter for aesthetics
                                                     echo '<option value="'.htmlspecialchars(ucfirst($row['role'])).'">'.htmlspecialchars(ucfirst($row['role'])).'</option>'; 
                                                 }
                                             } 
                                             ?>
-                                            
                                         </select>
                                     </div>
                                 </div>
@@ -222,60 +221,61 @@ $role_query = $conn->query("SELECT DISTINCT role FROM user_account WHERE role IS
                                             $result = $conn->query($sql);
 
                                             if ($result && $result->num_rows > 0) {
-                                                while($row = $result->fetch_assoc()) {
+                                                while ($row = $result->fetch_assoc()) {
                                                     // Determine Status Badge Color
                                                     $statusBadge = "badge-secondary";
-                                                    if($row['status'] == 'Plantilla') $statusBadge = "badge-success";
-                                                    else if($row['status'] == 'Job Order') $statusBadge = "badge-primary";
+                                                    if ($row['status'] == 'Plantilla')  $statusBadge = "badge-success";
+                                                    elseif ($row['status'] == 'Job Order') $statusBadge = "badge-primary";
 
                                                     // Determine Role Badge Color
-                                                    $roleBadge = "badge-secondary"; // default if no account
-                                                    $roleText = "None"; // <-- FIX: Initialize variable with a default value
+                                                    $roleBadge = "badge-secondary";
+                                                    $roleText  = "None";
                                                     
-                                                    if(isset($row['role'])) {
-                                                        if(strtolower($row['role']) == 'admin') {
-                                                            $roleBadge = "badge-danger";
-                                                        } else {
-                                                            $roleBadge = "badge-info";
-                                                        }
-                                                        $roleText = ucfirst($row['role']);
+                                                    if (isset($row['role'])) {
+                                                        $roleBadge = (strtolower($row['role']) == 'admin') ? "badge-danger" : "badge-info";
+                                                        $roleText  = ucfirst($row['role']);
                                                     }
 
                                                     echo '<tr>';
-                                                    echo '<td>' . htmlspecialchars($row['full'] ?? '') . '</td>';
-                                                    echo '<td>' . htmlspecialchars($row['emp_email'] ?? '') . '</td>';
-                                                    echo '<td>' . htmlspecialchars($row['department'] ?? '') . '</td>';
+                                                    echo '<td>' . htmlspecialchars($row['full']               ?? '') . '</td>';
+                                                    echo '<td>' . htmlspecialchars($row['emp_email']          ?? '') . '</td>';
+                                                    echo '<td>' . htmlspecialchars($row['department']         ?? '') . '</td>';
                                                     echo '<td>' . htmlspecialchars($row['area_of_assignment'] ?? '') . '</td>';
-                                                    echo '<td>' . htmlspecialchars($row['designation'] ?? '') . '</td>';
+                                                    echo '<td>' . htmlspecialchars($row['designation']        ?? '') . '</td>';
                                                     echo '<td><span class="badge ' . $statusBadge . '">' . htmlspecialchars($row['status'] ?? '') . '</span></td>';
-                                                    echo '<td><span class="badge ' . $roleBadge . '">' . htmlspecialchars($roleText) . '</span></td>';
+                                                    echo '<td><span class="badge ' . $roleBadge   . '">' . htmlspecialchars($roleText)         . '</span></td>';
                                                     
                                                     // Determine whether the employee already has a user account
-                                                    $hasAccount = !empty($row['username']);
-                                                    $statusBtnClass = $hasAccount ? 'btn-warning' : 'btn-success';
-                                                    $statusBtnLabel = $hasAccount ? 'Deactivate' : 'Activate';
-                                                    $statusBtnIcon = $hasAccount ? 'fa-user-times' : 'fa-user-plus';
-                                                    $accountStatusValue = $hasAccount ? 'active' : 'inactive';
+                                                    $hasAccount       = !empty($row['username']);
+                                                    $statusBtnClass   = $hasAccount ? 'btn-warning'   : 'btn-success';
+                                                    $statusBtnLabel   = $hasAccount ? 'Deactivate'     : 'Activate';
+                                                    $statusBtnIcon    = $hasAccount ? 'fa-user-times'  : 'fa-user-plus';
+                                                    $accountStatusVal = $hasAccount ? 'active'         : 'inactive';
 
                                                     // Action Buttons with ALL Data Attributes for the Edit Modal
                                                     echo '<td>
                                                             <button class="btn btn-info btn-sm edit-btn" title="Edit" 
-                                                                data-id="'.$row['emp_id'].'"
-                                                                data-full="'.htmlspecialchars($row['full'] ?? '').'"
-                                                                data-email="'.htmlspecialchars($row['emp_email'] ?? '').'"
-                                                                data-age="'.htmlspecialchars($row['age'] ?? '').'"
-                                                                data-gender="'.htmlspecialchars($row['gender'] ?? '').'"
-                                                                data-dept="'.htmlspecialchars($row['department'] ?? '').'"
-                                                                data-area="'.htmlspecialchars($row['area_of_assignment'] ?? '').'"
-                                                                data-desig="'.htmlspecialchars($row['designation'] ?? '').'"
-                                                                data-unit="'.htmlspecialchars($row['unit'] ?? '').'"
-                                                                data-status="'.htmlspecialchars($row['status'] ?? '').'"
-                                                                data-role="'.(isset($row['role']) ? htmlspecialchars($row['role']) : '').'"
-                                                                data-username="'.(isset($row['username']) ? htmlspecialchars($row['username']) : '').'"
+                                                                data-id="'     . $row['emp_id']                                              . '"
+                                                                data-full="'   . htmlspecialchars($row['full']               ?? '')           . '"
+                                                                data-email="'  . htmlspecialchars($row['emp_email']          ?? '')           . '"
+                                                                data-age="'    . htmlspecialchars($row['age']                ?? '')           . '"
+                                                                data-gender="' . htmlspecialchars($row['gender']             ?? '')           . '"
+                                                                data-dept="'   . htmlspecialchars($row['department']         ?? '')           . '"
+                                                                data-area="'   . htmlspecialchars($row['area_of_assignment'] ?? '')           . '"
+                                                                data-desig="'  . htmlspecialchars($row['designation']        ?? '')           . '"
+                                                                data-unit="'   . htmlspecialchars($row['unit']               ?? '')           . '"
+                                                                data-status="' . htmlspecialchars($row['status']             ?? '')           . '"
+                                                                data-role="'   . (isset($row['role'])     ? htmlspecialchars($row['role'])     : '') . '"
+                                                                data-username="'. (isset($row['username']) ? htmlspecialchars($row['username']) : '') . '"
                                                                 data-toggle="modal" data-target="#editEmployeeModal">
                                                                 <i class="fa fa-edit"></i>
                                                             </button>
-                                                            <button class="btn '.$statusBtnClass.' btn-sm status-btn" data-id="'.$row['emp_id'].'" data-account-status="'.$accountStatusValue.'" title="'.$statusBtnLabel.' Account"><i class="fa '.$statusBtnIcon.'"></i> '.$statusBtnLabel.'</button>
+                                                            <button class="btn ' . $statusBtnClass . ' btn-sm status-btn"
+                                                                data-id="' . $row['emp_id'] . '"
+                                                                data-account-status="' . $accountStatusVal . '"
+                                                                title="' . $statusBtnLabel . ' Account">
+                                                                <i class="fa ' . $statusBtnIcon . '"></i> ' . $statusBtnLabel . '
+                                                            </button>
                                                           </td>';
                                                     echo '</tr>';
                                                 }
@@ -326,5 +326,8 @@ $role_query = $conn->query("SELECT DISTINCT role FROM user_account WHERE role IS
 
     <!-- Employee Management JS -->
     <script src="js/employee_management.js"></script>
+
+    <!-- Real-time Username Uniqueness Check -->
+    <script src="js/username_check.js"></script>
 </body>
 </html>
