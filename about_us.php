@@ -49,7 +49,7 @@
                 
                 <i class="fa fa-info-circle fa-3x mb-2" style="color: #1ab394;"></i>
                 <h4 class="modal-title" id="aboutUsModalLabel" style="font-weight: 600; color: #676a6c;">About Us</h4>
-                <small class="font-bold text-muted">DICT Monday Flag Raising Attendance and Compliance Checking System</small>
+                <small class="font-bold text-muted">DICT Monday Flag Raising Attendance and Compliance Checker</small>
             </div>
             
             <div class="modal-body px-4 px-md-5 pt-3">
@@ -57,7 +57,7 @@
                 <!-- System Description Section -->
                 <div class="system-description mb-3">
                     <p>
-                        The <strong>DICT Monday Flag Raising Attendance and Compliance Checking System</strong> is a web-based platform designed to streamline and modernize the monitoring of employee attendance and compliance during the weekly flag-raising ceremony. This system aims to improve accuracy, efficiency, and transparency in tracking participation, ensuring that all personnel adhere to the required protocols set by the Department of Information and Communications Technology (DICT).
+                        The <strong>DICT Monday Flag Raising Attendance and Compliance Checker</strong> is a web-based platform designed to streamline and modernize the monitoring of employee attendance and compliance during the weekly flag-raising ceremony. This system aims to improve accuracy, efficiency, and transparency in tracking participation, ensuring that all personnel adhere to the required protocols set by the Department of Information and Communications Technology (DICT).
                     </p>
                     <p>
                         Through digital automation, the system minimizes manual processes, reduces errors, and provides real-time data for administrators. It also offers an organized and accessible record-keeping solution, making it easier to generate reports and evaluate compliance over time.
