@@ -482,7 +482,9 @@ try {
                 theme: 'grid',
                 margin: { left: pageWidth * 0.05, right: pageWidth * 0.05 },
                 headStyles: { 
-                    fillColor: false, textColor: [0,0,0], fontStyle: 'bold', fontSize: 6,
+                    fillColor: [34, 42, 53], // Changed from false to black
+                    textColor: [255, 255, 255], // Changed to white
+                    fontStyle: 'bold', fontSize: 6,
                     lineWidth: 0.5, lineColor: [180, 180, 180], halign: 'center', valign: 'middle',
                     font: 'times'
                 },
@@ -519,6 +521,7 @@ try {
                     const doc = data.doc;
                     if (data.section === 'head' && data.column.index === 1 && data.row.index === 0) {
                         const cell = data.cell;
+                        doc.setTextColor(255, 255, 255); // Explicitly set text to white for manually drawn content
                         doc.setFontSize(6); doc.setFont('times', 'bold');
                         doc.text('COMPLETE NAME', cell.x + cell.width / 2, cell.y + 12, { align: 'center' });
                         doc.setFont('times', 'normal'); doc.setFontSize(5);
