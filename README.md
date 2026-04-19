@@ -36,6 +36,7 @@ April 18, 2026
 
 - Maximize 3 admins only
 - Employee's Username Duplication Check (Employee Management Page)
+- Re-type Password text field
 
 April 06, 2026 – Update
 

@@ -5,12 +5,15 @@
       
       <!-- Sidebar Toggle Button -->
       <div class="navbar-header d-flex align-items-center">
-          
+          <a class="navbar-minimalize minimalize-styl-2 btn text-white shadow-sm me-3" href="#" style="background-color: #1cc88a; border: none; border-radius: 5px;">
+              <i class="fa fa-bars"></i>
+          </a>
       </div>
 
       <!-- Right Aligned Links (BS5 uses ms-auto instead of navbar-right) -->
       <ul class="nav navbar-top-links ms-auto d-flex align-items-center mb-0">
-          <li class="nav-item pe-4">
+          <!-- Added d-none d-lg-block to keep the navbar responsive on mobile devices -->
+          <li class="nav-item pe-4 d-none d-lg-block">
               <span class="text-muted welcome-message fw-semibold">
                   <i class="fa fa-clipboard-check text-success me-1"></i> DICT Monday Flag Raising Attendance and Compliance Checker
               </span>
