@@ -133,10 +133,25 @@ try {
     <script src="js/plugins/pace/pace.min.js"></script>
 
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script src="js/jquery-3.1.1.min.js"></script>
-    <script src="js/popper.min.js"></script>
-    <script src="js/bootstrap.js"></script>
-    
+
+    <script>
+      // Forcefully attach the sidebar toggle in case the template scripts hit an error 
+      // (e.g., if a file is missing or blocked)
+      $(document).ready(function() {
+          $('.navbar-minimalize').off('click').on('click', function(e) {
+              e.preventDefault();
+              $('body').toggleClass('mini-navbar');
+              
+              if (typeof SmoothlyMenu === 'function') {
+                  SmoothlyMenu();
+              } else {
+                  $('#side-menu').hide();
+                  setTimeout(function() { $('#side-menu').fadeIn(400); }, 200);
+              }
+          });
+      });
+    </script>
+
     <script>
       function renderUnlockedDates(dates) {
         var tbody = $('#unlocked-dates-body');
