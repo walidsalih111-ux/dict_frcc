@@ -105,20 +105,27 @@
                     <h5 style="color: #4e73df; font-weight: bold; margin-bottom: 15px;">User Account Settings</h5>
                     
                     <div class="row">
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                             <div class="form-group">
                                 <label>Username</label>
                                 <input type="text" name="username" id="edit_username" class="form-control" placeholder="Update username">
                             </div>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                             <div class="form-group">
                                 <label>New Password</label>
-                                <input type="password" name="password" id="edit_password" class="form-control" placeholder="Leave blank to keep current">
-                                <small class="text-muted">Fill only to change password.</small>
+                                <input type="password" name="password" id="edit_password" class="form-control" placeholder="Leave blank to keep">
+                                <small class="text-muted">Fill only to change.</small>
                             </div>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <label>Re-type Password</label>
+                                <input type="password" id="edit_confirm_password" class="form-control" placeholder="Re-type password">
+                                <div class="invalid-feedback">Passwords do not match.</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
                             <div class="form-group">
                                 <label>Account Role</label>
                                 <select name="role" id="edit_role" class="form-control" required>
@@ -175,6 +182,8 @@
             // Populate Account Details
             $('#edit_username').val(username);
             $('#edit_password').val(''); // Always clear out the password field
+            $('#edit_confirm_password').val(''); // Clear confirm password
+            $('#edit_confirm_password').removeClass('is-invalid'); // Remove any error styling
             
             // If the user has a role, set it (force to lower case to match option value). 
             // Otherwise default to user.

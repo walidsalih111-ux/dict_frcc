@@ -210,4 +210,67 @@ $(document).ready(function () {
       }
     });
   });
+
+  // ==========================================
+  // Password Matching Validation
+  // ==========================================
+  
+  // Real-time validation for Add Modal
+  $('#add_modal_password, #add_modal_confirm_password').on('keyup', function () {
+    const password = $('#add_modal_password').val();
+    const confirm = $('#add_modal_confirm_password').val();
+    
+    if (confirm && password !== confirm) {
+        $('#add_modal_confirm_password').addClass('is-invalid');
+    } else {
+        $('#add_modal_confirm_password').removeClass('is-invalid');
+    }
+  });
+
+  // Real-time validation for Edit Modal
+  $('#edit_password, #edit_confirm_password').on('keyup', function () {
+    const password = $('#edit_password').val();
+    const confirm = $('#edit_confirm_password').val();
+    
+    // Only validate if user is trying to change the password
+    if (password !== '' && confirm !== '' && password !== confirm) {
+        $('#edit_confirm_password').addClass('is-invalid');
+    } else {
+        $('#edit_confirm_password').removeClass('is-invalid');
+    }
+  });
+
+  // Prevent Add Form Submission if passwords don't match
+  $('#addEmployeeForm').on('submit', function (e) {
+    const password = $('#add_modal_password').val();
+    const confirm = $('#add_modal_confirm_password').val();
+    
+    if (password !== confirm) {
+        e.preventDefault();
+        $('#add_modal_confirm_password').addClass('is-invalid');
+        Swal.fire({
+            icon: 'error',
+            title: 'Wait!',
+            text: 'Your passwords do not match. Please re-type them.',
+            confirmButtonColor: '#e74a3b'
+        });
+    }
+  });
+
+  // Prevent Edit Form Submission if passwords don't match
+  $('#editEmployeeForm').on('submit', function (e) {
+    const password = $('#edit_password').val();
+    const confirm = $('#edit_confirm_password').val();
+    
+    if (password !== '' && password !== confirm) {
+        e.preventDefault();
+        $('#edit_confirm_password').addClass('is-invalid');
+        Swal.fire({
+            icon: 'error',
+            title: 'Wait!',
+            text: 'Your new passwords do not match. Please re-type them.',
+            confirmButtonColor: '#e74a3b'
+        });
+    }
+  });
 });

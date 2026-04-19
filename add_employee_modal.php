@@ -57,8 +57,6 @@
                                 </select>
                             </div>
                         </div>
-                        
-                        <!-- Area of Assignment Dropdown -->
                         <div class="col-md-6">
                             <div class="form-group">
                                 <label>Area of Assignment</label>
@@ -104,19 +102,26 @@
                     <div class="hr-line-dashed" style="border-top: 1px dashed #e7eaec; margin: 20px 0;"></div>
                     <h5 style="color: #4e73df; font-weight: bold; margin-bottom: 15px;">User Account Information</h5>
                     <div class="row">
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                             <div class="form-group">
                                 <label>Username</label>
                                 <input type="text" name="username" class="form-control" placeholder="Assign a username" required>
                             </div>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                             <div class="form-group">
                                 <label>Password</label>
-                                <input type="password" name="password" class="form-control" placeholder="Assign a password" required>
+                                <input type="password" name="password" id="add_modal_password" class="form-control" placeholder="Assign a password" required>
                             </div>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <label>Re-type Password</label>
+                                <input type="password" id="add_modal_confirm_password" class="form-control" placeholder="Re-type password" required>
+                                <div class="invalid-feedback">Passwords do not match.</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
                             <div class="form-group">
                                 <label>Role</label>
                                 <select name="role" class="form-control" required>
