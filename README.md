@@ -32,6 +32,10 @@ git push -u origin main
 
 git clone https://github.com/walidsalih111-ux/dict_frcc.git
 
+April 20, 2026
+
+- Fixed Bugs
+
 April 18, 2026
 
 - Maximize 3 admins only
