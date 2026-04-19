@@ -14,19 +14,99 @@ if (!$pdo) {
     die('Database connection failed: ' . ($db_error ?? 'Unknown error'));
 }
 
+// ================= NEW: POLLING ENDPOINT FOR LIVE UPDATES =================
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'check_new_attendance') {
+    $selectedArea = isset($_POST['area']) ? $_POST['area'] : '';
+    $clientCount = isset($_POST['current_count']) ? (int)$_POST['current_count'] : -1;
+    $clientDate = isset($_POST['current_date']) ? $_POST['current_date'] : '';
+
+    try {
+        // Sync with the newest date in data_table
+        $stmtLatestDate = $pdo->query("SELECT MAX(DATE(time_recorded)) FROM attendance_record");
+        $targetDate = $stmtLatestDate->fetchColumn() ?: date('Y-m-d');
+
+        $stmt = $pdo->prepare("SELECT COUNT(attendance_id) FROM attendance_record WHERE DATE(time_recorded) = :date");
+        $stmt->execute(['date' => $targetDate]);
+        $totalAttendanceToday = (int)$stmt->fetchColumn();
+
+        if ($totalAttendanceToday !== $clientCount || $targetDate !== $clientDate) {
+            // Data has changed! Fetch everything needed for the dashboard dynamically.
+            
+            // Compliant
+            $compliantQuery = "SELECT COUNT(DISTINCT a.emp_id) FROM attendance_record a JOIN employees e ON a.emp_id = e.emp_id WHERE a.is_compliant = 1 AND DATE(a.time_recorded) = :date";
+            $compParams = ['date' => $targetDate];
+            if ($selectedArea) {
+                $compliantQuery .= " AND e.area_of_assignment = :area";
+                $compParams['area'] = $selectedArea;
+            }
+            $stmt = $pdo->prepare($compliantQuery);
+            $stmt->execute($compParams);
+            $compliantCount = $stmt->fetchColumn();
+
+            // Non-Compliant
+            $nonCompliantQuery = "SELECT COUNT(DISTINCT a.emp_id) FROM attendance_record a JOIN employees e ON a.emp_id = e.emp_id WHERE a.is_compliant = 0 AND DATE(a.time_recorded) = :date";
+            $nonCompParams = ['date' => $targetDate];
+            if ($selectedArea) {
+                $nonCompliantQuery .= " AND e.area_of_assignment = :area";
+                $nonCompParams['area'] = $selectedArea;
+            }
+            $stmt = $pdo->prepare($nonCompliantQuery);
+            $stmt->execute($nonCompParams);
+            $nonCompliantCount = $stmt->fetchColumn();
+
+            // Chart Data (Compliant by Area)
+            $areaQuery = "SELECT area_of_assignment FROM employees WHERE area_of_assignment != 'area_of_assignment' AND TRIM(area_of_assignment) != '' AND area_of_assignment IS NOT NULL";
+            if ($selectedArea) {
+                $areaQuery .= " AND area_of_assignment = :area";
+                $stmt = $pdo->prepare($areaQuery . " GROUP BY area_of_assignment");
+                $stmt->execute(['area' => $selectedArea]);
+            } else {
+                $stmt = $pdo->query($areaQuery . " GROUP BY area_of_assignment");
+            }
+            $areaData = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            $chartLabels = array_column($areaData, 'area_of_assignment');
+            $chartData = [];
+            foreach ($areaData as $area) {
+                $stmt = $pdo->prepare("SELECT COUNT(DISTINCT a.emp_id) FROM attendance_record a JOIN employees e ON a.emp_id = e.emp_id WHERE a.is_compliant = 1 AND DATE(a.time_recorded) = ? AND e.area_of_assignment = ?");
+                $stmt->execute([$targetDate, $area['area_of_assignment']]);
+                $chartData[] = $stmt->fetchColumn();
+            }
+
+            $latestDateFormatted = date('M d, Y', strtotime($targetDate));
+
+            header('Content-Type: application/json');
+            echo json_encode([
+                'changed' => true,
+                'count' => $totalAttendanceToday,
+                'target_date' => $targetDate,
+                'compliantCount' => $compliantCount,
+                'nonCompliantCount' => $nonCompliantCount,
+                'chartLabels' => $chartLabels,
+                'chartData' => $chartData,
+                'latestDateFormatted' => $latestDateFormatted
+            ]);
+            exit;
+        }
+
+        header('Content-Type: application/json');
+        echo json_encode(['changed' => false]);
+        exit;
+    } catch (PDOException $e) {
+        header('Content-Type: application/json');
+        echo json_encode(['changed' => false, 'error' => $e->getMessage()]);
+        exit;
+    }
+}
+// ===========================================================================
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'fetch_compliance_list') {
     $status = isset($_POST['status']) && $_POST['status'] === '1' ? 1 : 0;
     $area = isset($_POST['area']) ? $_POST['area'] : ''; // Fetch area filter from AJAX
     
     // Determine active target date
-    $targetDate = date('Y-m-d', strtotime(date('l') === 'Monday' ? 'today' : 'last Monday'));
-    try {
-        $stmtUnlock = $pdo->query("SELECT target_date FROM unlocked_dates ORDER BY target_date DESC LIMIT 1");
-        $latestUnlock = $stmtUnlock->fetchColumn();
-        if ($latestUnlock && strtotime($latestUnlock) >= strtotime($targetDate)) {
-            $targetDate = $latestUnlock;
-        }
-    } catch (Exception $e) {}
+    $stmtLatestDate = $pdo->query("SELECT MAX(DATE(time_recorded)) FROM attendance_record");
+    $targetDate = $stmtLatestDate->fetchColumn() ?: date('Y-m-d');
     
     if (!$pdo) {
         echo "<tr><td colspan='6' class='text-center text-danger'>Database connection failed.</td></tr>";
@@ -136,26 +216,10 @@ try {
     }
     $areaData = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    // 6. Get Active Event Date & Unlock Dates Information
-    $targetDate = date('Y-m-d', strtotime(date('l') === 'Monday' ? 'today' : 'last Monday'));
-    $dateLabel = "This Monday";
+    // 6. Get Active Event Date 
+    $stmtLatestDate = $pdo->query("SELECT MAX(DATE(time_recorded)) FROM attendance_record");
+    $targetDate = $stmtLatestDate->fetchColumn() ?: date('Y-m-d');
     
-    // Fetch latest unlock dates to show in the wrapper
-    $latestUnlockDates = [];
-    try {
-        $stmtUnlockDates = $pdo->query("SELECT target_date FROM unlocked_dates ORDER BY target_date DESC LIMIT 2");
-        $latestUnlockDates = $stmtUnlockDates->fetchAll(PDO::FETCH_COLUMN);
-        
-        if (!empty($latestUnlockDates)) {
-            $newestUnlock = $latestUnlockDates[0];
-            // Update dashboard statistics to point to the newest unlock date if it's more recent
-            if (strtotime($newestUnlock) >= strtotime($targetDate)) {
-                $targetDate = $newestUnlock;
-                $dateLabel = "Unlocked Date";
-            }
-        }
-    } catch (PDOException $e) { }
-
     // Compliant Employees (Filtered by Area if applicable)
     $compliantQuery = "SELECT COUNT(DISTINCT a.emp_id) FROM attendance_record a JOIN employees e ON a.emp_id = e.emp_id WHERE a.is_compliant = 1 AND DATE(a.time_recorded) = :date";
     $compParams = ['date' => $targetDate];
@@ -191,6 +255,11 @@ try {
 
     $statusTitle = 'Employees by Status' . ($selectedArea ? ' (' . htmlspecialchars($selectedArea) . ')' : '');
 
+    // Get total attendance for the target date (for live polling comparison)
+    $stmt = $pdo->prepare("SELECT COUNT(attendance_id) FROM attendance_record WHERE DATE(time_recorded) = :date");
+    $stmt->execute(['date' => $targetDate]);
+    $totalAttendanceToday = $stmt->fetchColumn();
+
 } catch (PDOException $e) {
     // If DB fails to connect, fallback to empty data to prevent page breaking
     $totalEmployees = 0;
@@ -205,6 +274,7 @@ try {
     $chartLabel = '';
     $chartTitle = 'Chart';
     $statusTitle = 'Employees by Status';
+    $totalAttendanceToday = 0;
     $dbError = $e->getMessage();
 }
 
@@ -367,23 +437,9 @@ $pieDataJson = json_encode([$compliantCount, $nonCompliantCount]);
                         <h5>Flag Raising Ceremony</h5>
                     </div>
                     <div class="ibox-content">
-                        <?php if (!empty($latestUnlockDates)): ?>
-                            <h2 class="no-margins" style="font-size: 22px; font-weight: 600; line-height: 1.3;">
-                                <?php 
-                                    $displays = [];
-                                    foreach($latestUnlockDates as $ud) {
-                                        $displays[] = date('M d, Y', strtotime($ud));
-                                    }
-                                    echo implode('<br>', $displays);
-                                ?>
-                            </h2>
-                            <div class="stat-percent font-bold text-success"><i class="fa fa-unlock-alt"></i></div>
-                            <small>Latest Unlock Dates</small>
-                        <?php else: ?>
-                            <h1 class="no-margins"><?php echo date('M d, Y', strtotime($targetDate)); ?></h1>
-                            <div class="stat-percent font-bold text-success"><i class="fa fa-flag"></i></div>
-                            <small>Recent/Upcoming Monday</small>
-                        <?php endif; ?>
+                        <h1 class="no-margins" id="latestDateHeading"><?php echo date('M d, Y', strtotime($targetDate)); ?></h1>
+                        <div class="stat-percent font-bold text-success"><i class="fa fa-flag"></i></div>
+                        <small>Latest Flag Ceremony</small>
                     </div>
                 </div>
             </div>
@@ -391,8 +447,8 @@ $pieDataJson = json_encode([$compliantCount, $nonCompliantCount]);
             <div class="col-lg-4">
                 <div class="ibox clickable" id="compliantCard" data-status="1">
                     <div class="ibox-title">
-                        <span class="badge bg-primary float-end float-right"><?php echo $dateLabel; ?></span>
-                        <h5>Compliant</h5>
+                        <span class="badge bg-primary float-end float-right">Compliant</span>
+                        <h5>Total</h5>
                     </div>
                     <div class="ibox-content">
                         <h1 class="no-margins"><?php echo $compliantCount; ?></h1>
@@ -405,8 +461,8 @@ $pieDataJson = json_encode([$compliantCount, $nonCompliantCount]);
             <div class="col-lg-4">
                 <div class="ibox clickable" id="nonCompliantCard" data-status="0">
                     <div class="ibox-title">
-                        <span class="badge bg-danger float-end float-right"><?php echo $dateLabel; ?></span>
-                        <h5>Non-Compliant</h5>
+                        <span class="badge bg-danger float-end float-right">Non-Compliant</span>
+                        <h5>Total</h5>
                     </div>
                     <div class="ibox-content">
                         <h1 class="no-margins"><?php echo $nonCompliantCount; ?></h1>
@@ -540,7 +596,7 @@ $pieDataJson = json_encode([$compliantCount, $nonCompliantCount]);
         };
 
         var ctxBar = document.getElementById("departmentBarChart").getContext("2d");
-        new Chart(ctxBar, { type: "horizontalBar", data: barData, options: barOptions });
+        window.departmentBarChart = new Chart(ctxBar, { type: "horizontalBar", data: barData, options: barOptions });
 
         // 2. Pie Chart Configuration (Employees by Status)
         var statusLabels = <?php echo $statusLabels; ?>;
@@ -582,14 +638,13 @@ $pieDataJson = json_encode([$compliantCount, $nonCompliantCount]);
         new Chart(ctxPie, { type: "pie", data: pieData, options: pieOptions });
         
         // 3. Clickable Compliance Cards (Modal Fetch)
-        var dateLabel = <?php echo json_encode($dateLabel); ?>;
-        
         $('.ibox.clickable[data-status]').on('click', function () {
             var status = $(this).data('status');
-            var selectedArea = $('#areaFilter').val() || ''; // Grab selected area for the modal query
+            var selectedArea = $('#areaFilter').val() || ''; 
+            var currentDateStr = $('#latestDateHeading').text(); // Grab updated date string
             
             var isCompliant = status === 1 || status === '1';
-            var modalTitle = isCompliant ? ('Compliant Attendees - ' + dateLabel) : ('Non-Compliant Attendees - ' + dateLabel);
+            var modalTitle = isCompliant ? ('Compliant Attendees - ' + currentDateStr) : ('Non-Compliant Attendees - ' + currentDateStr);
             
             // Append Area to title if filtered
             if(selectedArea !== '') {
@@ -608,7 +663,7 @@ $pieDataJson = json_encode([$compliantCount, $nonCompliantCount]);
                 data: {
                     action: 'fetch_compliance_list',
                     status: status,
-                    area: selectedArea // Send the selected area to filter the modal list
+                    area: selectedArea 
                 },
                 success: function(response) {
                     $('#compliance_list_body').html(response);
@@ -636,6 +691,55 @@ $pieDataJson = json_encode([$compliantCount, $nonCompliantCount]);
                 }
             });
         });
+
+        // 5. Auto-refresh dashboard dynamically when new attendance is submitted
+        var totalAttendanceToday = <?php echo isset($totalAttendanceToday) ? $totalAttendanceToday : 0; ?>;
+        var currentTargetDate = "<?php echo isset($targetDate) ? $targetDate : ''; ?>";
+        
+        setInterval(function() {
+            var selectedArea = $('#areaFilter').val() || '';
+            $.ajax({
+                url: 'dashboard.php',
+                method: 'POST',
+                data: { 
+                    action: 'check_new_attendance',
+                    current_count: totalAttendanceToday,
+                    current_date: currentTargetDate,
+                    area: selectedArea
+                },
+                dataType: 'json',
+                success: function(response) {
+                    if (response.changed) {
+                        // Update tracking variables
+                        totalAttendanceToday = response.count;
+                        currentTargetDate = response.target_date;
+                        
+                        // Update Date Heading and UI Components dynamically
+                        $('#latestDateHeading').text(response.latestDateFormatted);
+                        $('#compliantCard h1').text(response.compliantCount);
+                        $('#nonCompliantCard h1').text(response.nonCompliantCount);
+
+                        // Update Bar Chart seamlessly without reloading the page
+                        window.departmentBarChart.data.labels = response.chartLabels;
+                        window.departmentBarChart.data.datasets[0].data = response.chartData;
+                        window.departmentBarChart.update();
+                        
+                        // Display sync toast
+                        const Toast = Swal.mixin({
+                            toast: true,
+                            position: 'top-end',
+                            showConfirmButton: false,
+                            timer: 3000,
+                            timerProgressBar: true,
+                        });
+                        Toast.fire({
+                            icon: 'success',
+                            title: 'Dashboard synced with new attendance!'
+                        });
+                    }
+                }
+            });
+        }, 3000); // Check every 3 seconds for seamless updates
 
       });
     </script>
