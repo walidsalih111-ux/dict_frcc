@@ -88,10 +88,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 $photo_data = $_POST['photo_data'] ?? null;
                 $photo_path = null;
 
-            // 2. NEW COMPLIANCE LOGIC
+            // 2. NEW COMPLIANCE LOGIC & TIME CHECK
+            $current_time = date('H:i');
+            $is_late = ($current_time >= '08:30'); // True if it's 8:30 AM or later
+            $status = $is_late ? 'Late' : 'On Time';
+            
             $is_compliant = 0; // Default to 0 (non-compliant)
-            // Check if conditions are met: Has ID, Proper Attire
-            if ($with_id === 'Yes' && $is_asean === 'Yes') {
+            
+            // Check if conditions are met: Has ID, Proper Attire, AND is On Time
+            if ($with_id === 'Yes' && $is_asean === 'Yes' && !$is_late) {
                 $is_compliant = 1; // 1 means compliant
             }
 
@@ -128,8 +133,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 try {
                     // 5. Execute ONE SINGLE INSERT Statement
                     $sql = "INSERT INTO attendance_record 
-                            (emp_id, designation, with_id, is_asean, photo_path, is_compliant, time_recorded) 
-                            VALUES (:emp_id, :designation, :with_id, :is_asean, :photo_path, :is_compliant, NOW())";
+                            (emp_id, designation, with_id, is_asean, status, photo_path, is_compliant, time_recorded) 
+                            VALUES (:emp_id, :designation, :with_id, :is_asean, :status, :photo_path, :is_compliant, NOW())";
 
                     $stmt = $pdo->prepare($sql);
                     
@@ -138,6 +143,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                         ':designation' => $designation,
                         ':with_id' => $with_id,
                         ':is_asean' => $is_asean,
+                        ':status' => $status,
                         ':photo_path' => $photo_path,
                         ':is_compliant' => $is_compliant
                     ]);
@@ -157,6 +163,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         }
     }
 }
+
+// Close POST handler
 }
 
 // Fetch Employees for the Dropdown Form
