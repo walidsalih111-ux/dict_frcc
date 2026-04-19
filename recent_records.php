@@ -119,9 +119,6 @@ $attendance_records = $tableStmt->fetchAll(PDO::FETCH_ASSOC);
                                         $hasId = ($record['with_id'] === 'Yes');
                                         $hasProperAttire = ($record['is_asean'] === 'Yes');
                                         
-                                        // Use db fields directly
-                                        $isCompliant = ($record['is_compliant'] == 1);
-
                                         // Format Date & Time for passing to photo modal
                                         $formattedDateTime = date('M d, Y - h:i A', strtotime($record['time_recorded']));
                                     ?>
@@ -141,11 +138,8 @@ $attendance_records = $tableStmt->fetchAll(PDO::FETCH_ASSOC);
                                         </td>
                                         
                                         <td class="text-center">
-                                            <?php if (isset($record['status']) && $record['status'] === 'Late'): ?>
-                                                <span class="label label-danger"><i class="bi bi-exclamation-circle me-1"></i>Late</span>
-                                            <?php else: ?>
-                                                <span class="label label-primary"><i class="bi bi-check-circle me-1"></i>Signed In</span>
-                                            <?php endif; ?>
+                                            <!-- Hid compliance/late status from public view, universally shows "Submitted" -->
+                                            <span class="label label-primary"><i class="bi bi-check-circle me-1"></i>Submitted</span>
                                         </td>
                                     </tr>
                                 <?php endforeach; ?>
