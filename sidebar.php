@@ -17,6 +17,13 @@ if (isset($_SESSION['fullname']) && !empty($_SESSION['fullname'])) {
 }
 ?>
 
+<script>
+  // Apply minimized state immediately to prevent UI flashing on page reload
+  if (localStorage.getItem('sidebar_state') === 'minimized') {
+      document.body.classList.add('mini-navbar');
+  }
+</script>
+
 <style>
   .locked-sidebar {
     position: fixed !important;

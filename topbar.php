@@ -29,3 +29,22 @@
 
     </nav>
   </div>
+  
+  <script>
+    // Keep track of sidebar toggle state in local storage
+    document.addEventListener("DOMContentLoaded", function() {
+        const toggleBtn = document.querySelector('.navbar-minimalize');
+        if(toggleBtn) {
+            toggleBtn.addEventListener('click', function() {
+                // Wait a tiny bit (50ms) for the body class to be toggled by the template's main JS (inspinia.js)
+                setTimeout(function() {
+                    if (document.body.classList.contains('mini-navbar')) {
+                        localStorage.setItem('sidebar_state', 'minimized');
+                    } else {
+                        localStorage.setItem('sidebar_state', 'expanded');
+                    }
+                }, 50);
+            });
+        }
+    });
+  </script>
