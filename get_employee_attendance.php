@@ -119,9 +119,7 @@ try {
     .badge-no { background-color: #e74a3b; }
     .date-main { font-weight: bold; color: #2d3748; display: block; font-size: 14px; margin-bottom: 2px; }
     .time-sub { color: #a0aec0; font-size: 12px; display: flex; align-items: center; gap: 4px; }
-    .photo-view { color: #1cc88a; font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; gap: 5px; }
-    .photo-view:hover { color: #13855c; text-decoration: none; }
-    .photo-none { color: #a0aec0; font-size: 13px; }
+    
     .stats-header {
         display: flex;
         justify-content: flex-end;
@@ -188,7 +186,7 @@ try {
                                 <th>With ID</th>
                                 <th>Proper Attire</th>
                                 <th>Compliant</th>
-                                <th>Photo</th>
+                                <th class="text-center">Photo</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -197,6 +195,10 @@ try {
                                     $timestamp = strtotime($row['time_recorded']);
                                     $dateStr = date('M d, Y', $timestamp);
                                     $timeStr = date('h:i A', $timestamp);
+                                    
+                                    // Required for the modal popup time display
+                                    $fullDateTime = date('M d, Y - h:i A', $timestamp);
+
                                     $isWithId = in_array(strtolower(trim((string)$row['with_id'])), ['1', 'yes', 'true', 'y']);
                                     $isProperAttire = in_array(strtolower(trim((string)$row['is_asean'])), ['1', 'yes', 'true', 'y']);
                                     $isCompliant = ((int)$row['is_compliant'] === 1);
@@ -232,13 +234,19 @@ try {
                                                 <span class="badge-no"><i class="fa fa-times"></i> No</span>
                                             <?php endif; ?>
                                         </td>
-                                        <td>
+                                        <td class="text-center align-middle">
                                             <?php if (!empty($row['photo_path'])): ?>
-                                                <a href="<?= htmlspecialchars($row['photo_path']) ?>" target="_blank" class="photo-view">
-                                                    <i class="fa fa-camera"></i> View
-                                                </a>
+                                                <?php $safePath = htmlspecialchars($row['photo_path'], ENT_QUOTES, 'UTF-8'); ?>
+                                                <img src="<?= $safePath ?>" 
+                                                     alt="Photo" 
+                                                     class="shadow-sm"
+                                                     style="width: 45px; height: 45px; object-fit: cover; border-radius: 8px; cursor: pointer; border: 2px solid #e3e6f0; transition: transform 0.2s;" 
+                                                     onmouseover="this.style.transform='scale(1.1)'" 
+                                                     onmouseout="this.style.transform='scale(1)'"
+                                                     onclick="viewAttendancePhoto('<?= $safePath ?>', '<?= $fullDateTime ?>')" 
+                                                     title="Click to view full image">
                                             <?php else: ?>
-                                                <span class="photo-none">None</span>
+                                                <span class="badge bg-light text-muted border px-2 py-1 fw-normal"><i class="fa fa-eye-slash"></i> No Photo</span>
                                             <?php endif; ?>
                                         </td>
                                     </tr>

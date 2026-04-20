@@ -172,6 +172,20 @@ try {
             border-radius: 0 0 8px 8px; 
         }
 
+        /* Photo Column Table Cells (Matching view_attendance.php) */
+        .photo-thumbnail {
+            width: 45px;
+            height: 45px;
+            object-fit: cover;
+            border-radius: 8px;
+            cursor: pointer;
+            border: 2px solid #e3e6f0;
+            transition: transform 0.2s;
+        }
+        .photo-thumbnail:hover {
+            transform: scale(1.1);
+        }
+
 		@media (max-width: 767px) {
 			.page-callout {
 				flex-direction: column;
@@ -258,7 +272,7 @@ try {
 		</div>
 	</div> <!-- closes page-wrapper -->
 
-    <!-- Photo Viewer Modal (Matches view_attendance.php style) -->
+    <!-- Photo Viewer Modal (Exact match to view_attendance.php) -->
     <div class="modal fade" id="photoViewerModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content border-0 shadow-lg" style="border-radius: 15px;">
@@ -274,7 +288,6 @@ try {
                     </div>
                 </div>
                 <div class="modal-footer bg-light border-0 d-flex justify-content-center" style="border-radius: 0 0 15px 15px;">
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
                 </div>
             </div>
         </div>
