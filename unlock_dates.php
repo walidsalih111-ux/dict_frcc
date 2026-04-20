@@ -54,6 +54,52 @@ try {
         .navbar-static-top { background: rgba(255,255,255,0.95) !important; box-shadow: 0 2px 10px rgba(0,0,0,0.05) !important; border-bottom: none !important; }
         .table tbody tr:hover { background: rgba(26, 179, 148, 0.08); }
         .form-control:focus { box-shadow: none; border-color: #1ab394; }
+
+        .page-callout {
+          background: rgba(255, 255, 255, 0.94);
+          border: 1px solid rgba(78, 115, 223, 0.25);
+          border-left: 5px solid #4e73df;
+          border-radius: 12px;
+          box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+          padding: 14px 16px;
+          margin-bottom: 18px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+        }
+
+        .page-callout .callout-title {
+          margin: 0;
+          font-weight: 700;
+          color: #2f4050;
+          font-size: 15px;
+        }
+
+        .page-callout .callout-subtitle {
+          margin: 2px 0 0;
+          color: #5e6a75;
+          font-size: 12px;
+        }
+
+        .page-callout .callout-icon {
+          width: 34px;
+          height: 34px;
+          border-radius: 50%;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          background: rgba(78, 115, 223, 0.12);
+          color: #4e73df;
+          flex-shrink: 0;
+        }
+
+        @media (max-width: 767px) {
+          .page-callout {
+            flex-direction: column;
+            align-items: flex-start;
+          }
+        }
     </style>
   </head>
 
@@ -70,6 +116,14 @@ try {
       <?php include 'topbar.php'; ?>
 
       <div class="wrapper wrapper-content animated fadeInRight">
+        <div class="page-callout">
+          <div>
+            <p class="callout-title">Unlock Date Control</p>
+            <p class="callout-subtitle">Authorize special attendance dates when sign-in should be available outside regular schedule.</p>
+          </div>
+          <span class="callout-icon"><i class="fa fa-unlock-alt"></i></span>
+        </div>
+
         <div class="row">
           <div class="col-lg-10 offset-lg-1">
             <div class="ibox ">

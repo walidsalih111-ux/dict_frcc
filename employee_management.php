@@ -105,6 +105,52 @@ $role_query = $conn->query("SELECT DISTINCT role FROM user_account WHERE role IS
         .bg-success   { background-color: #1cc88a !important; }
         .bg-primary   { background-color: #4e73df !important; }
         .bg-info      { background-color: #36b9cc !important; }
+
+        .page-callout {
+            background: rgba(255, 255, 255, 0.94);
+            border: 1px solid rgba(78, 115, 223, 0.25);
+            border-left: 5px solid #4e73df;
+            border-radius: 12px;
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+            padding: 14px 16px;
+            margin-bottom: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .page-callout .callout-title {
+            margin: 0;
+            font-weight: 700;
+            color: #2f4050;
+            font-size: 15px;
+        }
+
+        .page-callout .callout-subtitle {
+            margin: 2px 0 0;
+            color: #5e6a75;
+            font-size: 12px;
+        }
+
+        .page-callout .callout-icon {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(78, 115, 223, 0.12);
+            color: #4e73df;
+            flex-shrink: 0;
+        }
+
+        @media (max-width: 767px) {
+            .page-callout {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
     </style>
 </head>
 
@@ -124,6 +170,14 @@ $role_query = $conn->query("SELECT DISTINCT role FROM user_account WHERE role IS
 
             <!-- Main Content -->
             <div class="wrapper wrapper-content animated fadeInRight">
+                <div class="page-callout">
+                    <div>
+                        <p class="callout-title">Employee Directory</p>
+                        <p class="callout-subtitle">Manage employee records, account status, and role assignments from this panel.</p>
+                    </div>
+                    <span class="callout-icon"><i class="fa fa-users"></i></span>
+                </div>
+
                 <div class="row">
                     <div class="col-lg-12">
                         <div class="ibox ">

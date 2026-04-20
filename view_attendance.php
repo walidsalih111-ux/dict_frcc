@@ -249,6 +249,52 @@ try {
             min-width: 78px;
             border-radius: 999px;
         }
+
+        .page-callout {
+            background: rgba(255, 255, 255, 0.94);
+            border: 1px solid rgba(78, 115, 223, 0.25);
+            border-left: 5px solid #4e73df;
+            border-radius: 12px;
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+            padding: 14px 16px;
+            margin-bottom: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .page-callout .callout-title {
+            margin: 0;
+            font-weight: 700;
+            color: #2f4050;
+            font-size: 15px;
+        }
+
+        .page-callout .callout-subtitle {
+            margin: 2px 0 0;
+            color: #5e6a75;
+            font-size: 12px;
+        }
+
+        .page-callout .callout-icon {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(78, 115, 223, 0.12);
+            color: #4e73df;
+            flex-shrink: 0;
+        }
+
+        @media (max-width: 767px) {
+            .page-callout {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
     </style>
 </head>
 <body class="gray-bg">
@@ -256,6 +302,13 @@ try {
 <div class="wrapper wrapper-content animated fadeInRight">
     <div class="row justify-content-center">
         <div class="col-lg-12 col-xl-11">
+            <div class="page-callout">
+                <div>
+                    <p class="callout-title">Ceremony Attendance Detail</p>
+                    <p class="callout-subtitle">Review attendee compliance status and update individual records when needed.</p>
+                </div>
+                <span class="callout-icon"><i class="fa fa-clipboard"></i></span>
+            </div>
             
             <div class="ibox">
                 <div class="ibox-title d-flex justify-content-between align-items-center">

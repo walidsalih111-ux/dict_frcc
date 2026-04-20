@@ -304,6 +304,52 @@ $attendance_records = $stmt->fetchAll(PDO::FETCH_ASSOC);
             animation-duration: 0.6s;
             animation-fill-mode: both;
         }
+
+        .page-callout {
+            background: rgba(255, 255, 255, 0.94);
+            border: 1px solid rgba(26, 179, 148, 0.25);
+            border-left: 5px solid #1ab394;
+            border-radius: 12px;
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+            padding: 14px 16px;
+            margin-bottom: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .page-callout .callout-title {
+            margin: 0;
+            font-weight: 700;
+            color: #2f4050;
+            font-size: 15px;
+        }
+
+        .page-callout .callout-subtitle {
+            margin: 2px 0 0;
+            color: #5e6a75;
+            font-size: 12px;
+        }
+
+        .page-callout .callout-icon {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(26, 179, 148, 0.12);
+            color: #1ab394;
+            flex-shrink: 0;
+        }
+
+        @media (max-width: 767px) {
+            .page-callout {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
     </style>
 </head>
 <body>
@@ -340,6 +386,13 @@ $attendance_records = $stmt->fetchAll(PDO::FETCH_ASSOC);
     <div class="container wrapper wrapper-content animated fadeInRight">
         <div class="row justify-content-center">
             <div class="col-lg-12">
+                <div class="page-callout">
+                    <div>
+                        <p class="callout-title">My Attendance Timeline</p>
+                        <p class="callout-subtitle">Track your compliance history, filter by date, and review your submitted attendance records.</p>
+                    </div>
+                    <span class="callout-icon"><i class="bi bi-calendar-check"></i></span>
+                </div>
                 
                 <!-- IBox Panel -->
                 <div class="ibox">
@@ -622,9 +675,55 @@ $attendance_records = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 </table>
             </div>
             <div class="modal-footer">
+                <button type="button" class="btn btn-outline-primary me-auto" id="openAccountSettingsBtn">Edit Account</button>
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
             </div>
         </div>
+        </div>
+    </div>
+
+    <!-- Account Settings Modal -->
+    <div class="modal fade" id="accountSettingsModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content profile-modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-gear me-1 text-secondary"></i> Account Settings</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form id="accountSettingsForm" method="POST" action="process_account_settings.php">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label small text-muted">Username</label>
+                        <input type="text" name="username" id="acc_username" class="form-control" required value="<?php echo htmlspecialchars($_SESSION['username'] ?? ''); ?>">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small text-muted">Email</label>
+                        <input type="email" name="emp_email" id="acc_email" class="form-control" value="<?php echo htmlspecialchars($userProfile['emp_email'] ?? ''); ?>">
+                    </div>
+                    <hr>
+                    <p class="small text-muted mb-2">Change Password (leave blank to keep current password)</p>
+                    <div class="mb-3 position-relative">
+                        <label class="form-label small text-muted">Current Password</label>
+                        <input type="password" name="current_password" id="acc_current_password" class="form-control">
+                        <span class="position-absolute top-50 end-0 translate-middle-y me-3 toggle-password" onclick="togglePassword('acc_current_password', this)"><i class="bi bi-eye"></i></span>
+                    </div>
+                    <div class="mb-3 position-relative">
+                        <label class="form-label small text-muted">New Password</label>
+                        <input type="password" name="new_password" id="acc_new_password" class="form-control" minlength="8" placeholder="At least 8 characters">
+                        <span class="position-absolute top-50 end-0 translate-middle-y me-3 toggle-password" onclick="togglePassword('acc_new_password', this)"><i class="bi bi-eye"></i></span>
+                    </div>
+                    <div class="mb-3 position-relative">
+                        <label class="form-label small text-muted">Confirm New Password</label>
+                        <input type="password" name="confirm_password" id="acc_confirm_password" class="form-control">
+                        <span class="position-absolute top-50 end-0 translate-middle-y me-3 toggle-password" onclick="togglePassword('acc_confirm_password', this)"><i class="bi bi-eye"></i></span>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-white" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="saveAccountBtn">Save Changes</button>
+                </div>
+                </form>
+            </div>
         </div>
     </div>
 
@@ -656,13 +755,60 @@ $attendance_records = $stmt->fetchAll(PDO::FETCH_ASSOC);
     <script>
         // Function to handle viewing the specific photo path and timestamp in the modal
         function viewPhoto(imagePath, dateTime) {
-            // Set the modal's image source to the passed path
             document.getElementById('attendanceImagePreview').src = imagePath;
-            // Set the modal's timestamp text
             document.getElementById('photoDateTimePreview').innerText = dateTime;
-            // Initialize and show the Bootstrap modal
             var photoModal = new bootstrap.Modal(document.getElementById('photoViewerModal'));
             photoModal.show();
+        }
+
+        // Toggle password visibility helper
+        function togglePassword(inputId, iconElement) {
+            var pass = document.getElementById(inputId);
+            var icon = iconElement.querySelector("i");
+            if (pass.type === "password") {
+                pass.type = "text";
+                icon.classList.remove("bi-eye");
+                icon.classList.add("bi-eye-slash");
+            } else {
+                pass.type = "password";
+                icon.classList.remove("bi-eye-slash");
+                icon.classList.add("bi-eye");
+            }
+        }
+
+        // Open Account Settings modal from Profile modal
+        var openAccBtn = document.getElementById('openAccountSettingsBtn');
+        if (openAccBtn) {
+            openAccBtn.addEventListener('click', function() {
+                var profileModalEl = document.getElementById('profileModal');
+                var profileModal = bootstrap.Modal.getInstance(profileModalEl) || new bootstrap.Modal(profileModalEl);
+                profileModal.hide();
+                var accModal = new bootstrap.Modal(document.getElementById('accountSettingsModal'));
+                accModal.show();
+            });
+        }
+
+        // Validate account settings form before submit
+        var accountForm = document.getElementById('accountSettingsForm');
+        if (accountForm) {
+            accountForm.addEventListener('submit', function(e) {
+                var newPass = document.getElementById('acc_new_password').value.trim();
+                var confPass = document.getElementById('acc_confirm_password').value.trim();
+
+                if (newPass !== '' || confPass !== '') {
+                    if (newPass.length < 8) {
+                        e.preventDefault();
+                        Swal.fire({icon:'warning', title:'Weak password', text: 'New password must be at least 8 characters.'});
+                        return false;
+                    }
+                    if (newPass !== confPass) {
+                        e.preventDefault();
+                        Swal.fire({icon:'warning', title:'Password mismatch', text: 'New password and confirmation do not match.'});
+                        return false;
+                    }
+                }
+                // allow submit
+            });
         }
 
         // SweetAlert2 Logout Confirmation
@@ -685,6 +831,13 @@ $attendance_records = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 }
             });
         });
+
+        // Show server-side result messages (account update)
+        <?php if (isset($_GET['account_update']) && $_GET['account_update'] === 'success'): ?>
+            Swal.fire({icon:'success', title: 'Account updated', text: 'Your account settings have been updated.'});
+        <?php elseif (isset($_GET['account_update']) && $_GET['account_update'] === 'error'): ?>
+            Swal.fire({icon:'error', title: 'Update failed', text: <?php echo json_encode($_GET['reason'] ?? 'An error occurred'); ?>});
+        <?php endif; ?>
     </script>
 </body>
 </html> 

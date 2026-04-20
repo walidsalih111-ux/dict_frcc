@@ -386,6 +386,52 @@ $pieDataJson = json_encode([$compliantCount, $nonCompliantCount]);
             transform: translateY(-4px);
             box-shadow: 0 15px 30px rgba(0,0,0,0.15);
         }
+
+        .page-callout {
+            background: rgba(255, 255, 255, 0.94);
+            border: 1px solid rgba(78, 115, 223, 0.25);
+            border-left: 5px solid #4e73df;
+            border-radius: 12px;
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+            padding: 14px 16px;
+            margin-bottom: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .page-callout .callout-title {
+            margin: 0;
+            font-weight: 700;
+            color: #2f4050;
+            font-size: 15px;
+        }
+
+        .page-callout .callout-subtitle {
+            margin: 2px 0 0;
+            color: #5e6a75;
+            font-size: 12px;
+        }
+
+        .page-callout .callout-icon {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(78, 115, 223, 0.12);
+            color: #4e73df;
+            flex-shrink: 0;
+        }
+
+        @media (max-width: 767px) {
+            .page-callout {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
     </style>
   </head>
 
@@ -403,6 +449,14 @@ $pieDataJson = json_encode([$compliantCount, $nonCompliantCount]);
        <?php include 'topbar.php'; ?>
        
         <div class="wrapper wrapper-content">
+
+          <div class="page-callout">
+              <div>
+                  <p class="callout-title">Dashboard Overview</p>
+                  <p class="callout-subtitle">Monitor compliance, attendee counts, and date-specific summaries in one place.</p>
+              </div>
+              <span class="callout-icon"><i class="fa fa-line-chart"></i></span>
+          </div>
         
           <?php if(isset($dbError)): ?>
           <div class="alert alert-danger shadow-sm border-0 rounded-3" role="alert">

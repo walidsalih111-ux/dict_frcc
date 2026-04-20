@@ -31,6 +31,7 @@ if (isset($_SESSION['fullname']) && !empty($_SESSION['fullname'])) {
     left: 0;     /* Anchors the sidebar to the left of the viewport */
     height: 100vh;
     overflow-y: auto; /* Allows scrolling INSIDE the sidebar if the menu gets too long */
+    background-color: #2f4050 !important; /* FIXED: Explicit background color prevents body gradient bleed */
     
     /* Changed z-index from 2000 to 1030 so SweetAlert2 (z-index: 1060) 
        and Bootstrap Modals (z-index: 1050) can properly cover it */
@@ -39,7 +40,7 @@ if (isset($_SESSION['fullname']) && !empty($_SESSION['fullname'])) {
 
   /* Adds a visual separator and spacing for the about us item */
   .nav-about {
-    border-top: 1px solid #2f4050;
+    border-top: 1px solid #1f2d3d; /* Slightly darker separator to match the background */
     margin-top: 15px;
   }
 
@@ -80,6 +81,10 @@ if (isset($_SESSION['fullname']) && !empty($_SESSION['fullname'])) {
 
       <li class="<?php echo (basename($_SERVER['PHP_SELF']) == 'dashboard.php') ? 'active' : ''; ?>">
         <a href="dashboard.php"><i class="fa fa-th-large"></i> <span class="nav-label">Dashboard</span></a>
+      </li>
+
+      <li class="<?php echo (in_array(basename($_SERVER['PHP_SELF']), ['my_attendance.php', 'my_emp_attendance.php'])) ? 'active' : ''; ?>">
+        <a href="my_emp_attendance.php"><i class="fa fa-calendar-check-o"></i> <span class="nav-label">My Attendance</span></a>
       </li>
 
       <li class="<?php echo (basename($_SERVER['PHP_SELF']) == 'data_table.php') ? 'active' : ''; ?>">
