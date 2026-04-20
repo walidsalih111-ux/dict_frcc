@@ -14,69 +14,19 @@ if (!$pdo) {
 
 $employees = [];
 
-// Search query
-$search = isset($_GET['q']) ? trim($_GET['q']) : '';
-
-// Pagination settings
-$limit = 20; // entries per page
-$page = isset($_GET['page']) ? max(1, (int) $_GET['page']) : 1;
-$offset = ($page - 1) * $limit;
-$totalEmployees = 0;
-$totalPages = 1;
-$start = 0;
-$end = 0;
-
 try {
-	// Count total employees for pagination (with optional search)
-	if ($search !== '') {
-		$countStmt = $pdo->prepare("SELECT COUNT(*) FROM employees WHERE full IS NOT NULL AND TRIM(full) != '' AND full LIKE :search");
-		$countStmt->bindValue(':search', '%' . $search . '%', PDO::PARAM_STR);
-		$countStmt->execute();
-	} else {
-		$countStmt = $pdo->prepare("SELECT COUNT(*) FROM employees WHERE full IS NOT NULL AND TRIM(full) != ''");
-		$countStmt->execute();
-	}
-	$totalEmployees = (int) $countStmt->fetchColumn();
-
-	$totalPages = ($totalEmployees > 0) ? (int) ceil($totalEmployees / $limit) : 1;
-	if ($page > $totalPages) {
-		$page = $totalPages;
-		$offset = ($page - 1) * $limit;
-	}
-
-	// Fetch paginated employees (with optional search)
-	$sql = "SELECT emp_id, full, designation, department, area_of_assignment
+	// Fetch all valid employees for DataTables
+	$sql = "SELECT emp_id, full, designation, department, unit, area_of_assignment
 			FROM employees
-			WHERE full IS NOT NULL AND TRIM(full) != ''";
-	if ($search !== '') {
-		$sql .= " AND full LIKE :search";
-	}
-	$sql .= "\n         ORDER BY full ASC\n         LIMIT :limit OFFSET :offset";
+			WHERE full IS NOT NULL AND TRIM(full) != ''
+			ORDER BY full ASC";
 
 	$employeeStmt = $pdo->prepare($sql);
-	if ($search !== '') {
-		$employeeStmt->bindValue(':search', '%' . $search . '%', PDO::PARAM_STR);
-	}
-	$employeeStmt->bindValue(':limit', (int) $limit, PDO::PARAM_INT);
-	$employeeStmt->bindValue(':offset', (int) $offset, PDO::PARAM_INT);
 	$employeeStmt->execute();
 	$employees = $employeeStmt->fetchAll(PDO::FETCH_ASSOC);
 
-	$start = $totalEmployees > 0 ? $offset + 1 : 0;
-	$end = min($offset + $limit, $totalEmployees);
-
 } catch (PDOException $e) {
 	die('Database Error: ' . $e->getMessage());
-}
-
-// Build base query string for pagination links (preserve search)
-$baseQuery = [];
-if ($search !== '') {
-	$baseQuery['q'] = $search;
-}
-$queryBase = '?';
-if (!empty($baseQuery)) {
-	$queryBase = '?' . http_build_query($baseQuery) . '&';
 }
 ?>
 <!doctype html>
@@ -88,6 +38,10 @@ if (!empty($baseQuery)) {
 
 	<link href="css/bootstrap.min.css" rel="stylesheet" />
 	<link href="font-awesome/css/font-awesome.css" rel="stylesheet" />
+    
+    <!-- DataTables CSS -->
+    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap4.min.css">
+
 	<link href="css/animate.css" rel="stylesheet" />
 	<link href="css/style.css" rel="stylesheet" />
 	<link href="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.32/dist/sweetalert2.min.css" rel="stylesheet" />
@@ -130,6 +84,14 @@ if (!empty($baseQuery)) {
 		.table th {
 			vertical-align: middle !important;
 		}
+
+        /* DataTables specific transparent matching */
+        div.dataTables_wrapper div.dataTables_filter input,
+        div.dataTables_wrapper div.dataTables_length select {
+            border-radius: 8px;
+            border: 1px solid #ddd;
+            padding: 4px 8px;
+        }
 
 		.page-callout {
 			background: rgba(255, 255, 255, 0.94);
@@ -252,25 +214,18 @@ if (!empty($baseQuery)) {
 						<div class="ibox-title d-flex justify-content-between align-items-center">
 							<h5>Employee List</h5>
 							<div class="d-flex align-items-center" style="gap:10px;">
-								<form class="form-inline mb-0" method="get" action="my_emp_attendance.php">
-									<div class="input-group input-group-sm">
-										<input type="text" name="q" class="form-control" placeholder="Search by name..." value="<?php echo htmlspecialchars($search ?? '', ENT_QUOTES); ?>">
-										<div class="input-group-append">
-											<button class="btn btn-primary" type="submit"><i class="fa fa-search"></i></button>
-										</div>
-									</div>
-								</form>
 								<small class="text-muted d-none d-sm-block mb-0">Select an employee and click View Attendance.</small>
 							</div>
 						</div>
 						<div class="ibox-content">
 							<div class="table-responsive">
-								<table class="table table-striped table-bordered table-hover">
+								<table class="table table-striped table-bordered table-hover dataTables-employees">
 									<thead>
 										<tr>
 											<th>Employee Name</th>
 											<th>Designation</th>
 											<th>Division</th>
+                                            <th>Unit</th>
 											<th>Area of Assignment</th>
 											<th width="160">Action</th>
 										</tr>
@@ -282,6 +237,7 @@ if (!empty($baseQuery)) {
 													<td><?php echo htmlspecialchars($emp['full'] ?? ''); ?></td>
 													<td><?php echo htmlspecialchars($emp['designation'] ?? ''); ?></td>
 													<td><?php echo htmlspecialchars($emp['department'] ?? ''); ?></td>
+                                                    <td><?php echo htmlspecialchars($emp['unit'] ?? ''); ?></td>
 													<td><?php echo htmlspecialchars($emp['area_of_assignment'] ?? ''); ?></td>
 													<td>
 														<button type="button" class="btn btn-primary btn-sm view-attendance-btn" data-emp-id="<?php echo (int) $emp['emp_id']; ?>" data-emp-name="<?php echo htmlspecialchars($emp['full'] ?? '', ENT_QUOTES); ?>">
@@ -290,77 +246,39 @@ if (!empty($baseQuery)) {
 													</td>
 												</tr>
 											<?php endforeach; ?>
-										<?php else: ?>
-											<tr>
-												<td colspan="5" class="text-center">No employees found.</td>
-											</tr>
 										<?php endif; ?>
 									</tbody>
-									</table>
-								</div>
-
-								<!-- Pagination and summary -->
-								<?php if ($totalEmployees > 0): ?>
-									<div class="d-flex justify-content-between align-items-center mt-3">
-										<div class="text-muted">
-											Showing <?php echo $start; ?> to <?php echo $end; ?> of <?php echo $totalEmployees; ?> entries
-										</div>
-										<nav aria-label="Employee list pagination">
-											<ul class="pagination mb-0">
-												<?php if ($page > 1): ?>
-													<li class="page-item"><a class="page-link" href="<?php echo $queryBase; ?>page=<?php echo $page - 1; ?>">&laquo; Prev</a></li>
-												<?php else: ?>
-													<li class="page-item disabled"><span class="page-link">&laquo; Prev</span></li>
-												<?php endif; ?>
-
-												<?php
-													$adjacents = 2;
-													$startPage = max(1, $page - $adjacents);
-													$endPage = min($totalPages, $page + $adjacents);
-
-													if ($startPage > 1) {
-														?>
-														<li class="page-item"><a class="page-link" href="<?php echo $queryBase; ?>page=1">1</a></li>
-														<?php if ($startPage > 2) { ?>
-															<li class="page-item disabled"><span class="page-link">...</span></li>
-														<?php }
-													}
-
-													for ($p = $startPage; $p <= $endPage; $p++) {
-														if ($p == $page) {
-															echo '<li class="page-item active" aria-current="page"><span class="page-link">'.$p.'</span></li>';
-														} else {
-														?>
-														<li class="page-item"><a class="page-link" href="<?php echo $queryBase; ?>page=<?php echo $p; ?>"><?php echo $p; ?></a></li>
-														<?php
-														}
-													}
-
-													if ($endPage < $totalPages) {
-														if ($endPage < $totalPages - 1) echo '<li class="page-item disabled"><span class="page-link">...</span></li>';
-														?>
-														<li class="page-item"><a class="page-link" href="<?php echo $queryBase; ?>page=<?php echo $totalPages; ?>"><?php echo $totalPages; ?></a></li>
-														<?php
-													}
-												?>
-
-												<?php if ($page < $totalPages): ?>
-													<li class="page-item"><a class="page-link" href="<?php echo $queryBase; ?>page=<?php echo $page + 1; ?>">Next &raquo;</a></li>
-												<?php else: ?>
-													<li class="page-item disabled"><span class="page-link">Next &raquo;</span></li>
-												<?php endif; ?>
-											</ul>
-										</nav>
-									</div>
-								<?php endif; ?>
-
+								</table>
 							</div>
 						</div>
+					</div>
 				</div>
 			</div>
 
 		</div>
 	</div> <!-- closes page-wrapper -->
+
+    <!-- Photo Viewer Modal (Matches view_attendance.php style) -->
+    <div class="modal fade" id="photoViewerModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg" style="border-radius: 15px;">
+                <div class="modal-header p-3 bg-light" style="border-radius: 15px 15px 0 0;">
+                    <h5 class="modal-title text-primary fw-bold mb-0"><i class="fa fa-camera"></i> Attendance Snapshot</h5>
+                </div>
+                <div class="modal-body text-center bg-dark p-2">
+                    <img id="attendanceImagePreview" src="" alt="Captured Photo" class="img-fluid rounded" style="max-height: 500px; width: 100%; object-fit: contain;">
+                    <div class="mt-3 mb-2 text-white">
+                        <span class="badge bg-primary p-2 shadow-sm rounded-pill" style="font-size: 0.95rem;">
+                            <i class="fa fa-clock-o"></i> Captured on: <span id="attendancePhotoTime"></span>
+                        </span>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light border-0 d-flex justify-content-center" style="border-radius: 0 0 15px 15px;">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
 	<script src="js/jquery-3.1.1.min.js"></script>
 	<script src="js/popper.min.js"></script>
@@ -369,15 +287,42 @@ if (!empty($baseQuery)) {
 	<script src="js/plugins/slimscroll/jquery.slimscroll.min.js"></script>
 	<script src="js/inspinia.js"></script>
 	<script src="js/plugins/pace/pace.min.js"></script>
-	<!-- SweetAlert2 -->
+    
+    <!-- DataTables JS -->
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap4.min.js"></script>
+	
+    <!-- SweetAlert2 -->
 	<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.32/dist/sweetalert2.all.min.js"></script>
 
-	<script>
+    <script>
+        // Global function to be called by child elements rendered in get_employee_attendance.php
+        function viewAttendancePhoto(path, time) {
+            $('#attendanceImagePreview').attr('src', path);
+            $('#attendancePhotoTime').text(time);
+            $('#photoViewerModal').modal('show');
+        }
+
+        $(document).ready(function() {
+            // Initialize DataTables
+            $('.dataTables-employees').DataTable({
+                pageLength: 20,
+                responsive: true,
+                language: {
+                    search: "_INPUT_",
+                    searchPlaceholder: "Search employee..."
+                }
+            });
+        });
+
 		// Dynamic tabbed attendance viewer
 		(function($){
 			function createTab(empId, empName) {
 				var tabId = 'emp-tab-' + empId;
 				
+				// Hide the main employee list table
+				$('#employeeListSection').slideUp(300);
+
 				// If exists, show it and scroll to it
 				if ($('#attendanceTabs a[href="#' + tabId + '"]').length) {
 					$('#attendanceTabs a[href="#' + tabId + '"]').tab('show');
@@ -440,6 +385,11 @@ if (!empty($baseQuery)) {
                         $last.tab('show'); 
                     }
 				}
+
+                // If no tabs remain open, slide the employee list back down
+                if ($('#attendanceTabs li').length === 0) {
+                    $('#employeeListSection').slideDown(300);
+                }
 			});
 		})(jQuery);
 	</script>
