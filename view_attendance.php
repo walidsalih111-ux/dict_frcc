@@ -10,6 +10,8 @@ include 'connect.php';
 
 $ceremony_date = $_GET['date'] ?? '';
 $area_filter = $_GET['area'] ?? ''; // New: Area filter
+$flash_message = $_GET['msg'] ?? '';
+$flash_error = $_GET['error'] ?? '';
 
 if (empty($ceremony_date)) {
     die("<h3 style='text-align:center; margin-top:50px; font-family:sans-serif;'>Error: No date provided.</h3>");
@@ -53,6 +55,7 @@ try {
         // 3. Fetch attendance records
         $query = "
             SELECT 
+                a.attendance_id,
                 e.full as employee_name,
                 e.gender,
                 e.emp_id,
@@ -241,6 +244,11 @@ try {
         
         /* Table Cell Alignment */
         .align-middle { vertical-align: middle !important; }
+
+        .action-btn {
+            min-width: 78px;
+            border-radius: 999px;
+        }
     </style>
 </head>
 <body class="gray-bg">
@@ -266,6 +274,22 @@ try {
                 </div>
 
                 <div class="ibox-content">
+
+                    <?php if ($flash_message === 'attendance_updated'): ?>
+                        <div class="alert alert-success alert-dismissible fade show mb-4" role="alert">
+                            Attendance record updated successfully.
+                            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                                <span aria-hidden="true">&times;</span>
+                            </button>
+                        </div>
+                    <?php elseif ($flash_error === 'attendance_update_failed'): ?>
+                        <div class="alert alert-danger alert-dismissible fade show mb-4" role="alert">
+                            Unable to update the attendance record. Please try again.
+                            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                                <span aria-hidden="true">&times;</span>
+                            </button>
+                        </div>
+                    <?php endif; ?>
                     
                     <!-- AREA FILTER FORM (IMPROVED UI) -->
                     <div class="row mb-4">
@@ -338,6 +362,7 @@ try {
                                     <th class="text-center">Proper Attire</th>
                                     <th class="text-center">Compliant</th>
                                     <th class="text-center">Photo</th>
+                                    <th class="text-center">Action</th>
                                 </tr>
                             </thead>
                             <tbody id="attendance_records_body">
@@ -357,6 +382,8 @@ try {
                                         // Bootstrap 5 uses bg-success instead of badge-success
                                         $compliantClass = ($row['is_compliant'] == 1) ? 'bg-success' : 'bg-danger';
                                         $compliantText = ($row['is_compliant'] == 1) ? 'Yes' : 'No';
+
+                                        $attendanceDateTimeValue = date('Y-m-d\TH:i', strtotime($row['time_recorded']));
 
                                         echo "<tr>";
                                         echo "<td class='fw-bold text-dark align-middle'>
@@ -395,10 +422,28 @@ try {
                                         } else {
                                             echo "<td class='text-center align-middle'><span class='badge bg-light text-muted border px-2 py-1 fw-normal'><i class='fa fa-eye-slash'></i> No Photo</span></td>";
                                         }
+
+                                        echo "<td class='text-center align-middle'>
+                                                <button type='button'
+                                                        class='btn btn-sm btn-outline-primary action-btn edit-attendance-btn'
+                                                        data-toggle='modal'
+                                                        data-target='#editAttendanceModal'
+                                                data-attendance-id='" . htmlspecialchars($row['attendance_id'], ENT_QUOTES, 'UTF-8') . "'
+                                                        data-emp-id='" . htmlspecialchars($row['emp_id'], ENT_QUOTES, 'UTF-8') . "'
+                                                        data-employee-name='" . htmlspecialchars($row['employee_name'] ?? '', ENT_QUOTES, 'UTF-8') . "'
+                                                        data-time-recorded='" . htmlspecialchars($attendanceDateTimeValue, ENT_QUOTES, 'UTF-8') . "'
+                                                        data-designation='" . htmlspecialchars($row['designation'] ?? '', ENT_QUOTES, 'UTF-8') . "'
+                                                        data-with-id='" . htmlspecialchars($row['with_id'] ?? 'No', ENT_QUOTES, 'UTF-8') . "'
+                                                        data-proper-attire='" . htmlspecialchars($row['proper_attire'] ?? 'No', ENT_QUOTES, 'UTF-8') . "'
+                                                        data-is-compliant='" . htmlspecialchars((string)($row['is_compliant'] ?? 0), ENT_QUOTES, 'UTF-8') . "'
+                                                        data-photo-path='" . htmlspecialchars($row['photo_path'] ?? '', ENT_QUOTES, 'UTF-8') . "'>
+                                                    <i class='fa fa-pencil'></i> Edit
+                                                </button>
+                                              </td>";
                                         echo "</tr>";
                                     }
                                 } else {
-                                    echo "<tr class='no-data-row'><td colspan='12' class='text-center text-muted py-5'>
+                                    echo "<tr class='no-data-row'><td colspan='13' class='text-center text-muted py-5'>
                                             <i class='fa fa-folder-open-o fa-3x mb-3 d-block text-primary opacity-50'></i>
                                             <em style='font-size: 1.2rem;'>No attendees found for this date.</em>
                                           </td></tr>";
@@ -435,6 +480,88 @@ try {
     </div>
 </div>
 
+<!-- Edit Attendance Modal -->
+<div class="modal fade" id="editAttendanceModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title text-primary font-weight-bold"><i class="fa fa-pencil me-1"></i> Edit Attendance Record</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <form method="POST" action="process_edit_attendance.php">
+                <div class="modal-body">
+                    <input type="hidden" name="attendance_id" id="edit_attendance_id">
+                    <input type="hidden" name="emp_id" id="edit_attendance_emp_id">
+                    <input type="hidden" name="original_time_recorded" id="edit_original_time_recorded">
+                    <input type="hidden" name="date" value="<?php echo htmlspecialchars($ceremony_date); ?>">
+                    <input type="hidden" name="area" value="<?php echo htmlspecialchars($area_filter); ?>">
+
+                    <div class="row">
+                        <div class="col-md-8">
+                            <div class="form-group">
+                                <label>Employee Name</label>
+                                <input type="text" id="edit_attendance_employee_name" class="form-control" readonly>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label>Time Recorded</label>
+                                <input type="datetime-local" name="time_recorded" id="edit_attendance_time_recorded" class="form-control" required>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>Designation</label>
+                                <input type="text" name="designation" id="edit_attendance_designation" class="form-control" required>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="form-group">
+                                <label>With ID</label>
+                                <select name="with_id" id="edit_attendance_with_id" class="form-control" required>
+                                    <option value="Yes">Yes</option>
+                                    <option value="No">No</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="form-group">
+                                <label>Proper Attire</label>
+                                <select name="proper_attire" id="edit_attendance_proper_attire" class="form-control" required>
+                                    <option value="Yes">Yes</option>
+                                    <option value="No">No</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="form-group">
+                                <label>Compliant</label>
+                                <select name="is_compliant" id="edit_attendance_is_compliant" class="form-control" required>
+                                    <option value="1">Yes</option>
+                                    <option value="0">No</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="alert alert-info mb-0">
+                        The attached photo stays unchanged when you update this record.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary"><i class="fa fa-save me-1"></i> Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <script src="js/jquery-3.1.1.min.js"></script>
 <script src="js/popper.min.js"></script>
 <script src="js/bootstrap.min.js"></script>
@@ -443,6 +570,25 @@ try {
 
 <script>
     window.printedByAdmin = "<?php echo isset($_SESSION['username']) ? htmlspecialchars($_SESSION['username'], ENT_QUOTES, 'UTF-8') : 'Admin'; ?>";
+</script>
+<script>
+    $(document).ready(function() {
+        $('#attendance_records_body').on('click', '.edit-attendance-btn', function() {
+            var button = $(this);
+
+            $('#edit_attendance_id').val(button.data('attendance-id'));
+            $('#edit_attendance_emp_id').val(button.data('emp-id'));
+            $('#edit_attendance_employee_name').val(button.data('employee-name'));
+            $('#edit_original_time_recorded').val(button.data('time-recorded'));
+            $('#edit_attendance_time_recorded').val(button.data('time-recorded'));
+            $('#edit_attendance_designation').val(button.data('designation'));
+            $('#edit_attendance_with_id').val(button.data('with-id'));
+            $('#edit_attendance_proper_attire').val(button.data('proper-attire'));
+            $('#edit_attendance_is_compliant').val(String(button.data('is-compliant')));
+
+            $('#editAttendanceModal').modal('show');
+        });
+    });
 </script>
 <script src="js/pdf.js"></script>
 </body>
