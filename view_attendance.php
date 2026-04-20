@@ -9,6 +9,7 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
 include 'connect.php';
 
 $ceremony_date = $_GET['date'] ?? '';
+$area_filter = $_GET['area'] ?? ''; // New: Area filter
 
 if (empty($ceremony_date)) {
     die("<h3 style='text-align:center; margin-top:50px; font-family:sans-serif;'>Error: No date provided.</h3>");
@@ -21,11 +22,36 @@ $formattedDate = $dateObj->format('F d, Y');
 $totalCount = 0;
 $compliantCount = 0;
 $nonCompliantCount = 0;
+$notAttendedCount = 0;
 $records = [];
+$areas = [];
 
 try {
     if ($pdo) {
-        $stmt = $pdo->prepare("
+        // 1. Set predefined areas of assignment for the dropdown filter
+        $areas = [
+            'Regional Office',
+            'Zamboanga City',
+            'Zamboanga Del Sur',
+            'Zamboanga Del Norte',
+            'Basilan',
+            'Tawi-Tawi',
+            'Sulu'
+        ];
+
+        // 2. Count total employees (filtered by area if applicable)
+        $empQuery = "SELECT COUNT(*) FROM employees WHERE 1=1";
+        $empParams = [];
+        if ($area_filter !== '') {
+            $empQuery .= " AND area_of_assignment = :area";
+            $empParams['area'] = $area_filter;
+        }
+        $empStmt = $pdo->prepare($empQuery);
+        $empStmt->execute($empParams);
+        $totalEmployees = $empStmt->fetchColumn();
+
+        // 3. Fetch attendance records
+        $query = "
             SELECT 
                 e.full as employee_name,
                 e.gender,
@@ -41,10 +67,19 @@ try {
                 a.photo_path
             FROM attendance_record a 
             JOIN employees e ON a.emp_id = e.emp_id 
-            WHERE DATE(a.time_recorded) = :ceremony_date 
-            ORDER BY e.full ASC
-        ");
-        $stmt->execute(['ceremony_date' => $ceremony_date]);
+            WHERE DATE(a.time_recorded) = :ceremony_date
+        ";
+        
+        $params = ['ceremony_date' => $ceremony_date];
+
+        if ($area_filter !== '') {
+            $query .= " AND e.area_of_assignment = :area";
+            $params['area'] = $area_filter;
+        }
+        $query .= " ORDER BY e.full ASC";
+
+        $stmt = $pdo->prepare($query);
+        $stmt->execute($params);
         $records = $stmt->fetchAll();
         
         foreach ($records as $row) {
@@ -55,6 +90,9 @@ try {
                 $nonCompliantCount++;
             }
         }
+
+        // 4. Calculate Not Attended
+        $notAttendedCount = max(0, $totalEmployees - $totalCount);
     }
 } catch (\PDOException $e) {
     die("Database Error: " . $e->getMessage());
@@ -122,11 +160,15 @@ try {
         .text-primary { color: #4e73df !important; }
         .text-info { color: #36b9cc !important; }
         .text-danger { color: #e74a3b !important; }
+        .text-warning { color: #f6c23e !important; }
         
         .bg-success { background-color: #1cc88a !important; }
         .bg-primary { background-color: #4e73df !important; }
         .bg-info { background-color: #36b9cc !important; }
         .bg-danger { background-color: #e74a3b !important; }
+        .bg-warning { background-color: #f6c23e !important; }
+
+        .border-warning { border-color: #f6c23e !important; }
 
         /* Stats Cards */
         .stats-card { 
@@ -140,6 +182,40 @@ try {
             box-shadow: 0 8px 15px rgba(0,0,0,0.1);
         }
         .border-start-3 { border-left-width: 4px !important; }
+
+        /* Filter Form UI */
+        .filter-group {
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.04);
+        }
+        .filter-group .input-group-text {
+            background: #f8f9fc;
+            border: 1px solid #e3e6f0;
+            color: #4e73df;
+            border-right: none;
+        }
+        .filter-group .form-select {
+            border: 1px solid #e3e6f0;
+            border-left: none;
+            color: #5a5c69;
+            cursor: pointer;
+        }
+        .filter-group .form-select:focus {
+            border-color: #e3e6f0;
+            box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075), 0 0 0 0.2rem rgba(78, 115, 223, 0.25);
+            outline: 0;
+        }
+        .filter-group .btn-clear {
+            background-color: #fff;
+            border: 1px solid #e3e6f0;
+            color: #e74a3b;
+            border-left: none;
+        }
+        .filter-group .btn-clear:hover {
+            background-color: #f8f9fc;
+            color: #c93a2e;
+        }
 
         /* Table & Layout */
         .table-responsive { 
@@ -190,29 +266,61 @@ try {
                 </div>
 
                 <div class="ibox-content">
-                    <?php if ($totalCount > 0): ?>
+                    
+                    <!-- AREA FILTER FORM (IMPROVED UI) -->
+                    <div class="row mb-4">
+                        <div class="col-md-6 col-lg-4">
+                            <form method="GET" action="view_attendance.php">
+                                <input type="hidden" name="date" value="<?php echo htmlspecialchars($ceremony_date); ?>">
+                                <div class="input-group filter-group">
+                                    <span class="input-group-text fw-bold">
+                                        <i class="fa fa-filter me-2"></i> Filter Area
+                                    </span>
+                                    <select name="area" class="form-select fw-semibold" onchange="this.form.submit()">
+                                        <option value="">All Areas</option>
+                                        <?php foreach ($areas as $a): ?>
+                                            <option value="<?php echo htmlspecialchars($a); ?>" <?php echo $area_filter === $a ? 'selected' : ''; ?>>
+                                                <?php echo htmlspecialchars($a); ?>
+                                            </option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                    <?php if($area_filter !== ''): ?>
+                                        <a href="view_attendance.php?date=<?php echo urlencode($ceremony_date); ?>" class="btn btn-clear" title="Clear Filter">
+                                            <i class="fa fa-times"></i>
+                                        </a>
+                                    <?php endif; ?>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
                     <!-- ATTENDANCE STATISTICS CARDS -->
                     <div class="row mb-4" id="attendance_stats_container">
-                        <div class="col-md-4 mb-2 mb-md-0">
+                        <div class="col-md-3 mb-2 mb-md-0">
                             <div class="p-3 bg-white border-start border-info border-start-3 stats-card text-center">
                                 <h6 class="text-info mb-1 fw-bold"><i class="fa fa-users"></i> Total Attendees</h6>
                                 <h3 class="mb-0 text-info fw-bold" id="stat_total"><?php echo $totalCount; ?></h3>
                             </div>
                         </div>
-                        <div class="col-md-4 mb-2 mb-md-0">
+                        <div class="col-md-3 mb-2 mb-md-0">
                             <div class="p-3 bg-white border-start border-success border-start-3 stats-card text-center">
                                 <h6 class="text-success mb-1 fw-bold"><i class="fa fa-check-circle"></i> Compliant</h6>
                                 <h3 class="mb-0 text-success fw-bold" id="stat_compliant"><?php echo $compliantCount; ?></h3>
                             </div>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-3 mb-2 mb-md-0">
                             <div class="p-3 bg-white border-start border-danger border-start-3 stats-card text-center">
                                 <h6 class="text-danger mb-1 fw-bold"><i class="fa fa-times-circle"></i> Non-Compliant</h6>
                                 <h3 class="mb-0 text-danger fw-bold" id="stat_noncompliant"><?php echo $nonCompliantCount; ?></h3>
                             </div>
                         </div>
+                        <div class="col-md-3 mb-2 mb-md-0">
+                            <div class="p-3 bg-white border-start border-warning border-start-3 stats-card text-center">
+                                <h6 class="text-warning mb-1 fw-bold"><i class="fa fa-user-times"></i> Not Attended</h6>
+                                <h3 class="mb-0 text-warning fw-bold" id="stat_notattended" title="Total active employees minus attendees"><?php echo $notAttendedCount; ?></h3>
+                            </div>
+                        </div>
                     </div>
-                    <?php endif; ?>
 
                     <div class="table-responsive border-0">
                         <table class="table table-bordered table-hover mb-0 mt-0">
