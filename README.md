@@ -1,4 +1,4 @@
-### System Description
+# System Description
 
 The DICT Monday Flag Raising Attendance and Compliance Checking System is a web-based platform designed to streamline and modernize the monitoring of employee attendance and compliance during the weekly flag-raising ceremony. This system aims to improve accuracy, efficiency, and transparency in tracking participation, ensuring that all personnel adhere to the required protocols set by the Department of Information and Communications Technology (DICT).
 
@@ -6,7 +6,7 @@ Through digital automation, the system minimizes manual processes, reduces error
 
 Our goal is to support government operations by leveraging technology to enhance accountability, promote discipline, and simplify attendance management in a professional and reliable manner.
 
-### Web Developers
+## Web Developers
 
 - Walid B. Salih
 - Al-Raji J. Theng
@@ -16,13 +16,13 @@ Our goal is to support government operations by leveraging technology to enhance
 
 - M.I.S.S. Team | DICT IX BASULTA
 
-### Github Push all files command:
+### Github Push all files command
 
 git add .
 git commit -m "Initial commit"
 git push -u origin main
 
-### Github Push Specific file:
+### Github Push Specific file
 
 git add <file_name>
 git commit -m "Initial commit"
@@ -30,7 +30,7 @@ git push -u origin main
 
 ### Git Clone command
 
-git clone https://github.com/walidsalih111-ux/dict_frcc.git
+git clone <https://github.com/walidsalih111-ux/dict_frcc.git>
 
 April 20, 2026
 
