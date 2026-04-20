@@ -88,7 +88,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 $photo_data = $_POST['photo_data'] ?? null;
                 $photo_path = null;
 
-<<<<<<< Updated upstream
             // 2. NEW COMPLIANCE LOGIC & TIME CHECK
             $current_time = date('H:i');
             $is_late = ($current_time >= '08:30'); // True if it's 8:30 AM or later
@@ -98,17 +97,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             
             // Check if conditions are met: Has ID, Proper Attire, AND is On Time
             if ($with_id === 'Yes' && $is_asean === 'Yes' && !$is_late) {
-=======
-            // 2. NEW COMPLIANCE LOGIC (ID and Attire)
-            $is_compliant = 0; // Default to 0 (non-compliant)
-            if ($with_id === 'Yes' && $is_asean === 'Yes') {
->>>>>>> Stashed changes
                 $is_compliant = 1; // 1 means compliant
             }
-
-            // NEW STATUS LOGIC: On Time (Before/At 8:30 AM) vs Late (After 8:30 AM)
-            $currentTime = date('H:i');
-            $status = ($currentTime <= '08:30') ? 'On Time' : 'Late';
 
             // 3. Handle Image Upload
             if (!empty($photo_data)) {
@@ -141,15 +131,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 $designation = $empData['designation'] ?? 'Employee';
 
                 try {
-                    // 5. Execute ONE SINGLE INSERT Statement including the Status
+                    // 5. Execute ONE SINGLE INSERT Statement
                     $sql = "INSERT INTO attendance_record 
-<<<<<<< Updated upstream
                             (emp_id, designation, with_id, is_asean, status, photo_path, is_compliant, time_recorded) 
                             VALUES (:emp_id, :designation, :with_id, :is_asean, :status, :photo_path, :is_compliant, NOW())";
-=======
-                            (emp_id, designation, with_id, is_asean, photo_path, is_compliant, status, time_recorded) 
-                            VALUES (:emp_id, :designation, :with_id, :is_asean, :photo_path, :is_compliant, :status, NOW())";
->>>>>>> Stashed changes
 
                     $stmt = $pdo->prepare($sql);
                     
@@ -160,8 +145,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                         ':is_asean' => $is_asean,
                         ':status' => $status,
                         ':photo_path' => $photo_path,
-                        ':is_compliant' => $is_compliant,
-                        ':status' => $status
+                        ':is_compliant' => $is_compliant
                     ]);
 
                     if ($execResult) {
@@ -191,34 +175,7 @@ try {
     $db_error = "Database query failed: " . $e->getMessage();
 }
 
-<<<<<<< Updated upstream
 // Note: Table fetching and pagination logic has been moved to recent_records.php
-=======
-// --- DATA TABLE PAGINATION & FETCHING ---
-// Define allowed limits and get current page/limit from URL
-$limit = isset($_GET['limit']) && in_array((int)$_GET['limit'], [10, 25, 50]) ? (int)$_GET['limit'] : 10;
-$page = isset($_GET['page']) && is_numeric($_GET['page']) && (int)$_GET['page'] > 0 ? (int)$_GET['page'] : 1;
-$offset = ($page - 1) * $limit;
-
-// Fetch total records for calculating pagination pages
-$countSql = "SELECT COUNT(*) FROM attendance_record a JOIN employees e ON a.emp_id = e.emp_id";
-$countStmt = $pdo->prepare($countSql);
-$countStmt->execute();
-$totalRecords = $countStmt->fetchColumn();
-$totalPages = ceil($totalRecords / $limit);
-
-// Fetch the attendance records across all employees (Added a.status)
-$tableSql = "SELECT a.designation, a.with_id, a.is_asean, a.is_compliant, a.status, a.time_recorded, a.photo_path, 
-               e.full, e.area_of_assignment, e.department, e.unit 
-        FROM attendance_record a
-        JOIN employees e ON a.emp_id = e.emp_id
-        ORDER BY a.time_recorded DESC
-        LIMIT " . (int)$limit . " OFFSET " . (int)$offset;
-
-$tableStmt = $pdo->prepare($tableSql);
-$tableStmt->execute();
-$attendance_records = $tableStmt->fetchAll(PDO::FETCH_ASSOC);
->>>>>>> Stashed changes
 
 ?>
 <!DOCTYPE html>
@@ -228,9 +185,13 @@ $attendance_records = $tableStmt->fetchAll(PDO::FETCH_ASSOC);
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DICT Monday Flag Raising - Dashboard</title>
 
+    <!-- Bootstrap 5 -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Icons -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
+    <!-- Google Fonts: Open Sans for Inspinia Typography -->
     <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <!-- Select2 & SweetAlert -->
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
@@ -313,20 +274,9 @@ $attendance_records = $tableStmt->fetchAll(PDO::FETCH_ASSOC);
         .btn-info-custom { background-color: #23c6c8; border-color: #23c6c8; color: #FFFFFF; }
         .btn-info-custom:hover { background-color: #21b9bb; border-color: #21b9bb; color: #FFFFFF; }
 
-<<<<<<< Updated upstream
         /* Toggle Switches */
         .toggle-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #f3f3f4; }
         .toggle-row:last-child { border-bottom: none; }
-=======
-        /* Live Clock styling */
-        .clock-panel { text-align: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px dashed #e7eaec; }
-        #live-clock { font-size: 2.5rem; font-weight: 700; color: #1ab394; margin-bottom: 0; line-height: 1.2; }
-        #live-date { font-size: 0.95rem; font-weight: 600; color: #a7b1c2; text-transform: uppercase; letter-spacing: 0.5px; }
-
-        /* Toggle Switches adapted for Inspinia */
-        .toggle-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #f3f3f4; }
-        .toggle-row:last-child { border-bottom: none; padding-bottom: 0; }
->>>>>>> Stashed changes
         .toggle-row label { font-weight: 600; color: #676a6c; margin-bottom: 0; cursor: pointer; font-size: 14px; }
         .form-check-input { width: 3.5em !important; height: 1.75em !important; cursor: pointer; border-color: #e5e6e7; }
         .form-check-input:checked { background-color: #1ab394; border-color: #1ab394; }
@@ -357,29 +307,7 @@ $attendance_records = $tableStmt->fetchAll(PDO::FETCH_ASSOC);
         }
 
         /* --- DATA TABLE STYLES --- */
-<<<<<<< Updated upstream
         .label { font-size: 10px; font-weight: 600; padding: 3px 8px; border-radius: 0.25em; }
-=======
-        .ibox-table {
-            background-color: rgba(255, 255, 255, 0.95);
-            border-top: 4px solid #1ab394;
-            border-radius: 8px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-            padding: 20px;
-            height: 100%;
-        }
-
-        /* Labels (Badges) */
-        .label {
-            font-family: 'Open Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif;
-            font-size: 10px;
-            font-weight: 600;
-            padding: 4px 10px;
-            text-shadow: none;
-            border-radius: 0.25em;
-            display: inline-block;
-        }
->>>>>>> Stashed changes
         .label-primary { background-color: #1ab394; color: #FFFFFF; }
         .label-danger { background-color: #ed5565; color: #FFFFFF; }
         .label-info { background-color: #23c6c8; color: #FFFFFF; }
@@ -387,11 +315,6 @@ $attendance_records = $tableStmt->fetchAll(PDO::FETCH_ASSOC);
         .label-warning { background-color: #f8ac59; color: #FFFFFF; }
         .label-plain { background-color: #d1dade; color: #5e5e5e; }
 
-<<<<<<< Updated upstream
-=======
-        /* Tables */
-        .table { font-size: 14px; background-color: transparent; }
->>>>>>> Stashed changes
         .table > thead > tr > th { border-bottom: 1px solid #e7eaec; font-weight: 600; color: #333; }
         .table > tbody > tr > td { border-top: 1px solid #e7eaec; vertical-align: middle; }
 
@@ -404,7 +327,6 @@ $attendance_records = $tableStmt->fetchAll(PDO::FETCH_ASSOC);
 </head>
 <body>
 
-<<<<<<< Updated upstream
 <!-- ========================================== -->
 <!-- CENTERED: THE LANDSCAPE KIOSK              -->
 <!-- ========================================== -->
@@ -423,220 +345,6 @@ $attendance_records = $tableStmt->fetchAll(PDO::FETCH_ASSOC);
         <div class="clock-panel">
             <div id="live-clock">00:00:00 AM</div>
             <div id="live-date">Loading Date...</div>
-=======
-<div class="container-fluid px-4">
-    
-    <div class="row justify-content-center mb-5">
-        <div class="col-lg-6 col-md-8">
-            <div class="loginscreen mx-auto">
-                
-                <div class="logo-container">
-                    <img src="img/logo/DICT.png" alt="DICT Logo" class="img-fluid" style="max-height: 130px; object-fit: contain;">
-                </div>
-                
-                <h3>DICT Monday Flag Raising</h3>
-                <p class="text-muted">Attendance Checker</p>
-
-                <?php if ($db_error): ?>
-                    <div class="alert alert-danger text-center" role="alert">
-                        <i class="bi bi-exclamation-triangle-fill"></i> <?php echo htmlspecialchars($db_error); ?>
-                    </div>
-                <?php endif; ?>
-
-                <div class="ibox-content mb-3">
-                    
-                    <div class="clock-panel">
-                        <div id="live-clock">00:00:00 AM</div>
-                        <div id="live-date">Loading Date...</div>
-                    </div>
-
-                    <form id="attendance-form" method="POST" action="index.php">
-                        <input type="hidden" name="action" value="mark_attendance">
-                        <input type="hidden" name="photo_data" id="photo_data" value="">
-                        
-                        <div class="mb-3">
-                            <label class="form-label text-muted fw-bold small mb-1">Employee Name</label>
-                            <select id="emp_id" name="emp_id" class="form-control" required <?php echo !$is_monday ? 'disabled' : ''; ?>>
-                                <option value=""></option> 
-                                <?php foreach ($employees as $emp): ?>
-                                    <option value="<?php echo htmlspecialchars($emp['emp_id']); ?>">
-                                        <?php echo htmlspecialchars($emp['full']); ?> 
-                                        <?php if(!empty($emp['designation'])) echo ' (' . htmlspecialchars($emp['designation']) . ')'; ?>
-                                    </option>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
-
-                        <div class="mb-4">
-                            <div class="toggle-row">
-                                <label class="form-check-label" for="with_id">
-                                    <i class="bi bi-person-vcard me-1 text-muted"></i> Wearing your ID?
-                                </label>
-                                <div class="form-check form-switch m-0 p-0">
-                                    <input class="form-check-input m-0 float-end" type="checkbox" role="switch" name="with_id" id="with_id" value="Yes" <?php echo !$is_monday ? 'disabled' : ''; ?>>
-                                </div>
-                            </div>
-                            <div class="toggle-row">
-                                <label class="form-check-label" for="is_asean">
-                                    <i class="bi bi-suit-tie me-1 text-muted"></i> Wearing Formal Attire?
-                                </label>
-                                <div class="form-check form-switch m-0 p-0">
-                                    <input class="form-check-input m-0 float-end" type="checkbox" role="switch" name="is_asean" id="is_asean" value="Yes" <?php echo !$is_monday ? 'disabled' : ''; ?>>
-                                </div>
-                            </div>
-                        </div>
-
-                        <?php if ($is_monday): ?>
-                            <button type="button" onclick="confirmSignIn()" class="btn btn-primary w-100 d-block py-2 fs-5">
-                                <i class="bi bi-box-arrow-in-right me-1"></i> Sign In
-                            </button>
-                        <?php else: ?>
-                            <div class="alert alert-warning text-center p-2 mb-3" style="font-size: 14px; background-color: #fcf8e3; border-color: #faebcc; color: #8a6d3b;">
-                                <i class="bi bi-info-circle-fill"></i> Attendance is only available on Mondays.
-                            </div>
-                            <button type="button" class="btn w-100 d-block py-2 fs-5" disabled style="background-color: #e5e6e7; border-color: #e5e6e7; color: #888; cursor: not-allowed;">
-                                <i class="bi bi-lock-fill me-1"></i> Sign In Locked
-                            </button>
-                        <?php endif; ?>
-                    </form>
-                </div>
-
-                <a href="login.php" class="btn btn-white w-100 py-2">
-                    <i class="bi bi-person-circle me-1"></i> Admin / Staff Login
-                </a>
-
-            </div>
-        </div>
-    </div>
-
-
-    <div class="row">
-        <div class="col-12 mb-4">
-            <div class="ibox-table">
-                
-                <div class="d-flex justify-content-between align-items-center mb-4">
-                    <h5 class="mb-0 text-dark fw-bold fs-4"><i class="bi bi-card-list me-2"></i> Recent Attendance Records</h5>
-                </div>
-
-                <div class="row mb-3 align-items-center">
-                    <div class="col-sm-12">
-                        <form method="GET" action="index.php" class="d-inline-flex align-items-center" id="entriesForm">
-                            <label class="mb-0 me-2 text-muted fw-normal">Show</label>
-                            <select name="limit" class="form-select form-select-sm w-auto d-inline-block shadow-none" onchange="document.getElementById('entriesForm').submit();">
-                                <option value="10" <?php echo $limit == 10 ? 'selected' : ''; ?>>10</option>
-                                <option value="25" <?php echo $limit == 25 ? 'selected' : ''; ?>>25</option>
-                                <option value="50" <?php echo $limit == 50 ? 'selected' : ''; ?>>50</option>
-                            </select>
-                            <label class="mb-0 ms-2 text-muted fw-normal">entries</label>
-                            <input type="hidden" name="page" value="1"> 
-                        </form>
-                    </div>
-                </div>
-                
-                <div class="table-responsive">
-                    <table class="table table-hover align-middle mb-0">
-                        <thead>
-                            <tr>
-                                <th>Date & Time</th>
-                                <th>Employee Name</th>
-                                <th class="text-center">Status</th>   
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php if (count($attendance_records) > 0): ?>
-                                <?php foreach ($attendance_records as $record): ?>
-                                    <?php 
-                                        $hasId = ($record['with_id'] === 'Yes');
-                                        $hasProperAttire = ($record['is_asean'] === 'Yes');
-                                        
-                                        // Retrieve the new status check from the database ('On Time' or 'Late')
-                                        $recordStatus = $record['status'] ?? 'Late';
-
-                                        // Format Date & Time for passing to photo modal
-                                        $formattedDateTime = date('M d, Y - h:i A', strtotime($record['time_recorded']));
-                                    ?>
-                                    <tr>
-                                        <td>
-                                            <strong><?php echo date('M d, Y', strtotime($record['time_recorded'])); ?></strong><br>
-                                            <div class="mt-1 d-flex align-items-center">
-                                                <small class="text-muted"><i class="bi bi-clock me-1"></i><?php echo date('h:i A', strtotime($record['time_recorded'])); ?></small>
-                                            </div>
-                                        </td>
-                                        
-                                        <td>
-                                            <strong><?php echo htmlspecialchars($record['full'] ?? 'N/A'); ?></strong><br>
-                                            <small class="text-muted"><?php echo htmlspecialchars($record['designation'] ?? 'N/A'); ?></small>
-                                        </td>
-                                        
-                                        <td class="text-center">
-                                            <?php if ($recordStatus === 'On Time'): ?>
-                                                <span class="label label-primary fs-6"><i class="bi bi-check-circle me-1"></i>On Time</span>
-                                            <?php else: ?>
-                                                <span class="label label-danger fs-6"><i class="bi bi-exclamation-circle me-1"></i>Late</span>
-                                            <?php endif; ?>
-                                        </td>
-                                    </tr>
-                                <?php endforeach; ?>
-                            <?php else: ?>
-                                <tr>
-                                    <td colspan="7" class="text-center text-muted py-4">
-                                        <h4 class="fw-light mb-1 mt-3">No Records Yet</h4>
-                                        <p class="small text-muted mb-4">Waiting for the first attendance entry.</p>
-                                    </td>
-                                </tr>
-                            <?php endif; ?>
-                        </tbody>
-                    </table>
-                </div>
-
-                <div class="row mt-3 align-items-center">
-                    <div class="col-sm-12 col-md-5">
-                        <?php
-                            $startEntry = ($totalRecords > 0) ? $offset + 1 : 0;
-                            $endEntry = min($offset + $limit, $totalRecords);
-                        ?>
-                        <div class="text-muted" style="font-size: 14px;">
-                            Showing <?php echo $startEntry; ?> to <?php echo $endEntry; ?> of <?php echo $totalRecords; ?> entries
-                        </div>
-                    </div>
-                    <div class="col-sm-12 col-md-7 d-flex justify-content-md-end justify-content-center mt-3 mt-md-0">
-                        <?php if ($totalPages > 1): ?>
-                            <ul class="pagination pagination-sm mb-0 list-unstyled d-flex">
-                                <li class="page-item <?php echo $page <= 1 ? 'disabled' : ''; ?>">
-                                    <a class="page-link" href="?limit=<?php echo $limit; ?>&page=<?php echo $page - 1; ?>">Previous</a>
-                                </li>
-                                
-                                <?php
-                                    $startPage = max(1, $page - 2);
-                                    $endPage = min($totalPages, $page + 2);
-                                    
-                                    if ($startPage > 1) {
-                                        echo '<li class="page-item"><a class="page-link" href="?limit=' . $limit . '&page=1">1</a></li>';
-                                        if ($startPage > 2) echo '<li class="page-item disabled"><span class="page-link">...</span></li>';
-                                    }
-
-                                    for ($i = $startPage; $i <= $endPage; $i++): ?>
-                                        <li class="page-item <?php echo $page == $i ? 'active' : ''; ?>">
-                                            <a class="page-link" href="?limit=<?php echo $limit; ?>&page=<?php echo $i; ?>"><?php echo $i; ?></a>
-                                        </li>
-                                    <?php endfor; 
-                                    
-                                    if ($endPage < $totalPages) {
-                                        if ($endPage < $totalPages - 1) echo '<li class="page-item disabled"><span class="page-link">...</span></li>';
-                                        echo '<li class="page-item"><a class="page-link" href="?limit=' . $limit . '&page=' . $totalPages . '">' . $totalPages . '</a></li>';
-                                    }
-                                ?>
-
-                                <li class="page-item <?php echo $page >= $totalPages ? 'disabled' : ''; ?>">
-                                    <a class="page-link" href="?limit=<?php echo $limit; ?>&page=<?php echo $page + 1; ?>">Next</a>
-                                </li>
-                            </ul>
-                        <?php endif; ?>
-                    </div>
-                </div>
-
-            </div>
->>>>>>> Stashed changes
         </div>
     </div>
 
@@ -725,15 +433,12 @@ $attendance_records = $tableStmt->fetchAll(PDO::FETCH_ASSOC);
     </div>
 </div>
 
-<<<<<<< Updated upstream
 <!-- ========================================== -->
 <!-- INCLUDE: RECENT RECORDS MODAL              -->
 <!-- ========================================== -->
 <?php include 'recent_records.php'; ?>
 
 <!-- Photo Viewer Modal -->
-=======
->>>>>>> Stashed changes
 <div class="modal fade" id="photoViewerModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content profile-modal-content">
@@ -753,6 +458,7 @@ $attendance_records = $tableStmt->fetchAll(PDO::FETCH_ASSOC);
     </div>
 </div>
 
+<!-- Bootstrap JS -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
 <script src="js/attendance.js?v=<?php echo time(); ?>"></script>
