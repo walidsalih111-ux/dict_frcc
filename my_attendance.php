@@ -200,11 +200,6 @@ $attendance_records = $stmt->fetchAll(PDO::FETCH_ASSOC);
             border-radius: 12px; 
             box-shadow: 0 4px 10px rgba(0,0,0,0.04); 
             background: #ffffff !important;
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
-        }
-        .stats-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 8px 20px rgba(0,0,0,0.08);
         }
         .border-start-4 { border-left-width: 4px !important; }
         
@@ -481,17 +476,12 @@ $attendance_records = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                             <span class="input-group-text fw-bold">
                                                 <i class="fa fa-list me-2"></i> Show
                                             </span>
-                                            <select name="limit" class="form-select fw-semibold" onchange="this.form.submit();">
+                                            <select name="limit" id="limitSelect" class="form-select fw-semibold">
                                                 <option value="10" <?php echo $limit == 10 ? 'selected' : ''; ?>>10 Entries</option>
                                                 <option value="25" <?php echo $limit == 25 ? 'selected' : ''; ?>>25 Entries</option>
                                                 <option value="50" <?php echo $limit == 50 ? 'selected' : ''; ?>>50 Entries</option>
                                             </select>
                                         </div>
-                                        <!-- Preserve page and date context -->
-                                        <input type="hidden" name="page" value="1">
-                                        <?php if ($dateFilter): ?>
-                                            <input type="hidden" name="date" value="<?php echo htmlspecialchars($dateFilter); ?>">
-                                        <?php endif; ?>
                                     </form>
                                 </div>
                                 <div class="col-md-7 col-lg-5">
@@ -502,19 +492,16 @@ $attendance_records = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                             </span>
                                             <!-- Real-time Flatpickr date input -->
                                             <input type="text" name="date" id="attendanceDatePicker" class="form-control fw-semibold" placeholder="Select a recorded date..." value="<?php echo htmlspecialchars($dateFilter ?? ''); ?>">
-                                            <input type="hidden" name="limit" value="<?php echo $limit; ?>">
-                                            <?php if ($dateFilter): ?>
-                                                <a href="my_attendance.php?limit=<?php echo $limit; ?>" class="btn btn-clear px-3 d-flex align-items-center" title="Clear Filter">
-                                                    <i class="fa fa-times"></i>
-                                                </a>
-                                            <?php endif; ?>
+                                            <button type="button" id="clearDateBtn" class="btn btn-clear px-3 d-flex align-items-center <?php echo $dateFilter ? '' : 'd-none'; ?>" title="Clear Filter">
+                                                <i class="fa fa-times"></i>
+                                            </button>
                                         </div>
                                     </form>
                                 </div>
                             </div>
                             
                             <!-- Main Table -->
-                            <div class="table-responsive border-0">
+                            <div class="table-responsive border-0" id="table_container" style="transition: opacity 0.3s ease;">
                                 <table class="table mb-0 mt-0">
                                     <thead>
                                         <tr>
@@ -604,7 +591,7 @@ $attendance_records = $stmt->fetchAll(PDO::FETCH_ASSOC);
                             </div>
 
                             <!-- Footer Pagination -->
-                            <div class="row mt-4 align-items-center">
+                            <div class="row mt-4 align-items-center" id="pagination_container">
                                 <div class="col-sm-12 col-md-5">
                                     <?php
                                         $startEntry = ($totalRecords > 0) ? $offset + 1 : 0;
@@ -687,10 +674,114 @@ $attendance_records = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 enable: availableDates,
                 dateFormat: "Y-m-d",
                 onChange: function(selectedDates, dateStr, instance) {
-                    // Automatically submit form when a date is clicked
-                    document.getElementById('dateSearchForm').submit();
+                    fetchAttendanceData(1);
                 }
             });
+        });
+
+        // AJAX Function to fetch data and update UI seamlessly
+        function fetchAttendanceData(page = 1) {
+            const limit = document.getElementById('limitSelect').value;
+            const dateInput = document.getElementById('attendanceDatePicker');
+            const date = dateInput.value;
+            const clearBtn = document.getElementById('clearDateBtn');
+
+            // Show/hide clear button dynamically
+            if (date) {
+                clearBtn.classList.remove('d-none');
+            } else {
+                clearBtn.classList.add('d-none');
+            }
+
+            // Build URL parameters
+            const url = new URL(window.location.href);
+            url.searchParams.set('limit', limit);
+            url.searchParams.set('page', page);
+            if (date) {
+                url.searchParams.set('date', date);
+            } else {
+                url.searchParams.delete('date');
+            }
+
+            // Update browser history/URL
+            window.history.pushState({ path: url.href }, '', url.href);
+
+            // Add visual feedback to table
+            const tableContainer = document.getElementById('table_container');
+            if(tableContainer) tableContainer.style.opacity = '0.5';
+
+            fetch(url, {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => response.text())
+            .then(html => {
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, 'text/html');
+
+                // Update Stats Container
+                const newStats = doc.getElementById('attendance_stats_container');
+                if (newStats) document.getElementById('attendance_stats_container').innerHTML = newStats.innerHTML;
+
+                // Update Table
+                const newTable = doc.getElementById('table_container');
+                if (newTable && tableContainer) {
+                    tableContainer.innerHTML = newTable.innerHTML;
+                    tableContainer.style.opacity = '1';
+                }
+
+                // Update Pagination
+                const newPagination = doc.getElementById('pagination_container');
+                if (newPagination) document.getElementById('pagination_container').innerHTML = newPagination.innerHTML;
+
+                // Re-bind pagination clicks
+                bindPagination();
+            })
+            .catch(error => {
+                console.error('Error fetching data:', error);
+                if(tableContainer) tableContainer.style.opacity = '1';
+            });
+        }
+
+        // Limit dropdown change listener
+        document.getElementById('limitSelect').addEventListener('change', function() {
+            fetchAttendanceData(1);
+        });
+
+        // Clear date button listener
+        document.getElementById('clearDateBtn').addEventListener('click', function() {
+            const fp = document.getElementById("attendanceDatePicker")._flatpickr;
+            if (fp) {
+                fp.clear(); // Clears Flatpickr value
+            } else {
+                document.getElementById('attendanceDatePicker').value = '';
+            }
+            fetchAttendanceData(1);
+        });
+
+        // Bind AJAX to pagination links
+        function bindPagination() {
+            const pageLinks = document.querySelectorAll('#pagination_container .page-link');
+            pageLinks.forEach(link => {
+                link.addEventListener('click', function(e) {
+                    // Prevent default behavior only if button is disabled/active
+                    if (this.parentElement.classList.contains('disabled') || this.parentElement.classList.contains('active')) {
+                        e.preventDefault();
+                    } else {
+                        e.preventDefault();
+                        const url = new URL(this.href);
+                        const page = url.searchParams.get('page');
+                        if (page) fetchAttendanceData(page);
+                    }
+                });
+            });
+        }
+
+        // Initialize pagination bindings and history support on page load
+        bindPagination();
+        window.addEventListener('popstate', function(e) {
+            window.location.reload(); 
         });
 
         // Function to handle viewing the specific photo path and timestamp in the modal
