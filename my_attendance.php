@@ -666,7 +666,9 @@ $attendance_records = $stmt->fetchAll(PDO::FETCH_ASSOC);
         <div class="modal-content profile-modal-content">
             <div class="modal-header p-3">
                 <h5 class="modal-title text-primary fw-bold" id="profileModalLabel"><i class="fa fa-user-circle-o me-1"></i> Employee Profile</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <button type="button" class="btn border-0 shadow-none text-secondary p-1" data-bs-dismiss="modal" aria-label="Close" style="background: transparent;">
+                    <i class="fa fa-times fs-5"></i>
+                </button>
             </div>
             <div class="modal-body">
                 <div class="text-center mb-4 mt-2">
@@ -739,7 +741,9 @@ $attendance_records = $stmt->fetchAll(PDO::FETCH_ASSOC);
             <div class="modal-content profile-modal-content">
                 <div class="modal-header p-3">
                     <h5 class="modal-title text-primary fw-bold"><i class="fa fa-cog me-1"></i> Account Settings</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="btn border-0 shadow-none text-secondary p-1" data-bs-dismiss="modal" aria-label="Close" style="background: transparent;">
+                        <i class="fa fa-times fs-5"></i>
+                    </button>
                 </div>
                 <form id="accountSettingsForm" method="POST" action="process_account_settings.php">
                 <div class="modal-body p-4">
@@ -753,21 +757,37 @@ $attendance_records = $stmt->fetchAll(PDO::FETCH_ASSOC);
                     </div>
                     <hr>
                     <p class="small text-info mb-3 fw-bold"><i class="fa fa-lock me-1"></i> Change Password (leave blank to keep current password)</p>
-                    <div class="mb-3 position-relative">
+                    
+                    <div class="mb-3">
                         <label class="form-label small text-muted fw-bold">Current Password</label>
-                        <input type="password" name="current_password" id="acc_current_password" class="form-control">
-                        <span class="position-absolute top-50 end-0 translate-middle-y me-3 toggle-password" onclick="togglePassword('acc_current_password', this)" style="cursor: pointer; margin-top: 14px; color: #858796;"><i class="fa fa-eye"></i></span>
+                        <div class="position-relative">
+                            <input type="password" name="current_password" id="acc_current_password" class="form-control pe-5">
+                            <span class="position-absolute top-50 end-0 translate-middle-y me-3 toggle-password" onclick="togglePassword('acc_current_password', this)" style="cursor: pointer; color: #858796;">
+                                <i class="fa fa-eye"></i>
+                            </span>
+                        </div>
                     </div>
-                    <div class="mb-3 position-relative">
+                    
+                    <div class="mb-3">
                         <label class="form-label small text-muted fw-bold">New Password</label>
-                        <input type="password" name="new_password" id="acc_new_password" class="form-control" minlength="8" placeholder="At least 8 characters">
-                        <span class="position-absolute top-50 end-0 translate-middle-y me-3 toggle-password" onclick="togglePassword('acc_new_password', this)" style="cursor: pointer; margin-top: 14px; color: #858796;"><i class="fa fa-eye"></i></span>
+                        <div class="position-relative">
+                            <input type="password" name="new_password" id="acc_new_password" class="form-control pe-5" minlength="8" placeholder="At least 8 characters">
+                            <span class="position-absolute top-50 end-0 translate-middle-y me-3 toggle-password" onclick="togglePassword('acc_new_password', this)" style="cursor: pointer; color: #858796;">
+                                <i class="fa fa-eye"></i>
+                            </span>
+                        </div>
                     </div>
-                    <div class="mb-3 position-relative">
+                    
+                    <div class="mb-3">
                         <label class="form-label small text-muted fw-bold">Confirm New Password</label>
-                        <input type="password" name="confirm_password" id="acc_confirm_password" class="form-control">
-                        <span class="position-absolute top-50 end-0 translate-middle-y me-3 toggle-password" onclick="togglePassword('acc_confirm_password', this)" style="cursor: pointer; margin-top: 14px; color: #858796;"><i class="fa fa-eye"></i></span>
+                        <div class="position-relative">
+                            <input type="password" name="confirm_password" id="acc_confirm_password" class="form-control pe-5">
+                            <span class="position-absolute top-50 end-0 translate-middle-y me-3 toggle-password" onclick="togglePassword('acc_confirm_password', this)" style="cursor: pointer; color: #858796;">
+                                <i class="fa fa-eye"></i>
+                            </span>
+                        </div>
                     </div>
+
                 </div>
                 <div class="modal-footer bg-light" style="border-radius: 0 0 15px 15px;">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -784,7 +804,9 @@ $attendance_records = $stmt->fetchAll(PDO::FETCH_ASSOC);
             <div class="modal-content border-0 shadow-lg" style="border-radius: 15px;">
                 <div class="modal-header p-3 bg-light" style="border-radius: 15px 15px 0 0;">
                     <h5 class="modal-title text-primary fw-bold mb-0"><i class="fa fa-camera"></i> Attendance Snapshot</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="btn border-0 shadow-none text-secondary p-1" data-bs-dismiss="modal" aria-label="Close" style="background: transparent;">
+                        <i class="fa fa-times fs-5"></i>
+                    </button>
                 </div>
                 <div class="modal-body text-center bg-dark p-2" style="border-radius: 0 0 15px 15px;">
                     <img id="attendanceImagePreview" src="" alt="Captured Attendance Photo" class="img-fluid rounded" style="max-height: 500px; width: 100%; object-fit: contain;">
