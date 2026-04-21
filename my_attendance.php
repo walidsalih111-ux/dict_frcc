@@ -34,6 +34,19 @@ $profileStmt->bindParam(':fullname', $_SESSION['fullname'], PDO::PARAM_STR);
 $profileStmt->execute();
 $userProfile = $profileStmt->fetch(PDO::FETCH_ASSOC);
 
+// --- FETCH AVAILABLE DATES FOR CALENDAR FILTER ---
+// Only fetch dates where this specific employee has recorded attendance
+$datesSql = "SELECT DISTINCT DATE(a.time_recorded) 
+             FROM attendance_record a 
+             JOIN employees e ON a.emp_id = e.emp_id 
+             WHERE e.full = :fullname";
+$datesStmt = $pdo->prepare($datesSql);
+$datesStmt->bindParam(':fullname', $_SESSION['fullname'], PDO::PARAM_STR);
+$datesStmt->execute();
+$availableDates = $datesStmt->fetchAll(PDO::FETCH_COLUMN);
+$availableDatesJson = json_encode($availableDates);
+// -------------------------------------------------
+
 // 5. Pagination Setup
 // Define allowed limits and get current page/limit from URL
 $limit = isset($_GET['limit']) && in_array((int)$_GET['limit'], [10, 25, 50]) ? (int)$_GET['limit'] : 10;
@@ -101,12 +114,14 @@ $attendance_records = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     <!-- Bootstrap 5 -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Font Awesome (Replacing Bootstrap Icons to match view_attendance.php) -->
+    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
     <!-- SweetAlert2 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.32/dist/sweetalert2.min.css" rel="stylesheet">
+    <!-- Flatpickr CSS for Date Picker -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
 
-    <!-- Theme & Custom CSS (Matching view_attendance.php UI/UX) -->
+    <!-- Theme & Custom CSS -->
     <style>
         /* Base typography and body */
         body {
@@ -169,11 +184,6 @@ $attendance_records = $stmt->fetchAll(PDO::FETCH_ASSOC);
             border: none !important;
             margin-top: 20px;
             margin-bottom: 25px;
-            transition: transform 0.3s ease;
-        }
-
-        .ibox:hover {
-            transform: translateY(-3px);
         }
 
         .ibox-title {
@@ -212,11 +222,6 @@ $attendance_records = $stmt->fetchAll(PDO::FETCH_ASSOC);
             border-radius: 10px; 
             box-shadow: 0 4px 6px rgba(0,0,0,0.05); 
             background: #ffffff !important;
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
-        }
-        .stats-card:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 8px 15px rgba(0,0,0,0.1);
         }
         .border-start-3 { border-left-width: 4px !important; }
 
@@ -252,6 +257,10 @@ $attendance_records = $stmt->fetchAll(PDO::FETCH_ASSOC);
             background-color: #f8f9fc;
             color: #c93a2e;
         }
+        /* Make Flatpickr input look like white background instead of readonly gray */
+        .flatpickr-input[readonly] {
+            background-color: #ffffff !important;
+        }
 
         /* Table & Layout */
         .table-responsive { 
@@ -273,7 +282,6 @@ $attendance_records = $stmt->fetchAll(PDO::FETCH_ASSOC);
             font-weight: 700;
         }
         .table { margin-bottom: 0; }
-        .table-hover tbody tr:hover { background-color: #f8f9fc; }
         .align-middle { vertical-align: middle !important; }
 
         /* Pagination matching theme */
@@ -485,9 +493,9 @@ $attendance_records = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                         <span class="input-group-text fw-bold">
                                             <i class="fa fa-calendar me-2"></i> Date
                                         </span>
-                                        <input type="date" name="date" class="form-control fw-semibold" value="<?php echo htmlspecialchars($dateFilter ?? ''); ?>">
+                                        <!-- Real-time Flatpickr date input -->
+                                        <input type="text" name="date" id="attendanceDatePicker" class="form-control fw-semibold" placeholder="Select a date..." value="<?php echo htmlspecialchars($dateFilter ?? ''); ?>">
                                         <input type="hidden" name="limit" value="<?php echo $limit; ?>">
-                                        <button type="submit" class="btn btn-primary px-3" style="border-radius: 0; z-index: 0;"><i class="fa fa-search"></i></button>
                                         <?php if ($dateFilter): ?>
                                             <a href="my_attendance.php?limit=<?php echo $limit; ?>" class="btn btn-clear px-3 d-flex align-items-center" title="Clear Filter">
                                                 <i class="fa fa-times"></i>
@@ -500,7 +508,7 @@ $attendance_records = $stmt->fetchAll(PDO::FETCH_ASSOC);
                         
                         <!-- Main Table -->
                         <div class="table-responsive border-0">
-                            <table class="table table-bordered table-hover mb-0 mt-0">
+                            <table class="table table-bordered mb-0 mt-0">
                                 <thead>
                                     <tr>
                                         <th>Date & Time Recorded</th>
@@ -560,9 +568,7 @@ $attendance_records = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                                         <img src="<?php echo $safePath; ?>" 
                                                              alt="Photo" 
                                                              class="shadow-sm"
-                                                             style="width: 45px; height: 45px; object-fit: cover; border-radius: 8px; cursor: pointer; border: 2px solid #e3e6f0; transition: transform 0.2s;" 
-                                                             onmouseover="this.style.transform='scale(1.1)'" 
-                                                             onmouseout="this.style.transform='scale(1)'"
+                                                             style="width: 45px; height: 45px; object-fit: cover; border-radius: 8px; cursor: pointer; border: 2px solid #e3e6f0;" 
                                                              onclick="viewPhoto('<?php echo $safePath; ?>', '<?php echo $formattedDateTime; ?>')" 
                                                              title="Click to view full image">
                                                     <?php else: ?>
@@ -763,7 +769,7 @@ $attendance_records = $stmt->fetchAll(PDO::FETCH_ASSOC);
         </div>
     </div>
 
-    <!-- Photo Viewer Modal (Matching view_attendance.php) -->
+    <!-- Photo Viewer Modal -->
     <div class="modal fade" id="photoViewerModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content border-0 shadow-lg" style="border-radius: 15px;">
@@ -787,8 +793,24 @@ $attendance_records = $stmt->fetchAll(PDO::FETCH_ASSOC);
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <!-- SweetAlert2 JS -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.32/dist/sweetalert2.all.min.js"></script>
+    <!-- Flatpickr JS -->
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     
     <script>
+        // Initialize Real-time Flatpickr restricted to Employee's Recorded Dates
+        document.addEventListener('DOMContentLoaded', function() {
+            const availableDates = <?php echo $availableDatesJson; ?>;
+            
+            flatpickr("#attendanceDatePicker", {
+                enable: availableDates,
+                dateFormat: "Y-m-d",
+                onChange: function(selectedDates, dateStr, instance) {
+                    // Automatically submit form when a date is clicked
+                    document.getElementById('dateSearchForm').submit();
+                }
+            });
+        });
+
         // Function to handle viewing the specific photo path and timestamp in the modal
         function viewPhoto(imagePath, dateTime) {
             document.getElementById('attendanceImagePreview').src = imagePath;
