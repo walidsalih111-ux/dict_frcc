@@ -134,58 +134,31 @@ $attendance_records = $stmt->fetchAll(PDO::FETCH_ASSOC);
             padding-bottom: 40px;
         }
 
-        /* Animated Gradient Background matching dashboard */
-        body.gray-bg, .wrapper.wrapper-content {
-            background: linear-gradient(135deg, #4e73df, #1cc88a) !important;
-            background-size: 200% 200% !important;
-            animation: gradientBG 10s ease infinite !important;
+        /* CRITICAL FIX: Page Wrapper Margin to prevent overlapping with fixed sidebar */
+        #page-wrapper {
+            margin-left: 220px; /* Standard Inspinia sidebar width */
             min-height: 100vh;
+            transition: all 0.3s ease;
+        }
+        body.mini-navbar #page-wrapper {
+            margin-left: 70px; /* Minimized sidebar width */
+        }
+        @media (max-width: 768px) {
+            #page-wrapper { margin-left: 0 !important; }
+            body.mini-navbar #page-wrapper { margin-left: 0 !important; }
         }
 
-        @keyframes gradientBG {
-            0% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
-            100% { background-position: 0% 50%; }
-        }
-
-        /* Top Navbar */
-        .navbar-top {
-            background: #ffffff;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-            margin-bottom: 0;
-            min-height: 60px;
-            z-index: 100;
-        }
-        
-        .navbar-brand-custom {
-            background-color: #4e73df;
-            color: #ffffff !important;
-            padding: 0 25px;
-            font-size: 14px;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            display: flex;
-            align-items: center;
-            align-self: stretch;
-            margin-right: 20px;
-        }
-
-        .navbar-top .nav-link {
-            color: #5a5c69;
-            font-weight: 600;
-            padding: 20px 15px;
-        }
-
-        .navbar-top .nav-link:hover {
-            color: #4e73df;
+        /* Solid Blue Background matching reference image */
+        body.gray-bg, #page-wrapper, .wrapper.wrapper-content {
+            background-color: #4e73df !important;
+            min-height: 100vh;
         }
 
         /* Ibox Card Styling matching dashboard */
         .ibox {
             border-radius: 15px !important;
             box-shadow: 0 10px 30px rgba(0,0,0,0.2) !important;
-            background: rgba(255, 255, 255, 0.95) !important;
+            background: rgba(255, 255, 255, 0.98) !important;
             border: none !important;
             margin-top: 20px;
             margin-bottom: 25px;
@@ -202,7 +175,7 @@ $attendance_records = $stmt->fetchAll(PDO::FETCH_ASSOC);
             background: transparent !important;
             border-radius: 0 0 15px 15px !important;
             border: none !important;
-            padding: 20px 25px !important;
+            padding: 25px 30px !important;
         }
 
         /* Theme Colors */
@@ -222,13 +195,23 @@ $attendance_records = $stmt->fetchAll(PDO::FETCH_ASSOC);
         .border-success { border-color: #1cc88a !important; }
         .border-danger { border-color: #e74a3b !important; }
 
-        /* Stats Cards */
+        /* Modern Stats Cards */
         .stats-card { 
-            border-radius: 10px; 
-            box-shadow: 0 4px 6px rgba(0,0,0,0.05); 
+            border-radius: 12px; 
+            box-shadow: 0 4px 10px rgba(0,0,0,0.04); 
             background: #ffffff !important;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
         }
-        .border-start-3 { border-left-width: 4px !important; }
+        .stats-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+        }
+        .border-start-4 { border-left-width: 4px !important; }
+        
+        /* Subtle colored backgrounds for icons */
+        .bg-info-subtle { background-color: rgba(54, 185, 204, 0.1); }
+        .bg-success-subtle { background-color: rgba(28, 200, 138, 0.1); }
+        .bg-danger-subtle { background-color: rgba(231, 74, 59, 0.1); }
 
         /* Filter Form UI */
         .filter-group {
@@ -270,8 +253,8 @@ $attendance_records = $stmt->fetchAll(PDO::FETCH_ASSOC);
         /* HIGHLIGHT CALENDAR FILTER BLACK COLOR */
         #attendanceDatePicker,
         #attendanceDatePicker.flatpickr-input[readonly] {
-            color: #000000 !important;
-            font-weight: 800 !important;
+            color: #4e73df !important;
+            font-weight: 700 !important;
         }
 
         /* Highlight the enabled (recorded) dates inside the calendar dropdown */
@@ -280,7 +263,7 @@ $attendance_records = $stmt->fetchAll(PDO::FETCH_ASSOC);
             font-weight: bold !important;
         }
         .flatpickr-day.selected {
-            color: #ffffff !important; /* Keep text white when selected for contrast */
+            color: #ffffff !important;
             background: #4e73df !important;
             border-color: #4e73df !important;
         }
@@ -290,22 +273,37 @@ $attendance_records = $stmt->fetchAll(PDO::FETCH_ASSOC);
             max-height: 60vh; 
             overflow-y: auto; 
             background: #fff; 
-            border-radius: 10px; 
-            box-shadow: 0 4px 15px rgba(0,0,0,0.05); 
-            border: 1px solid rgba(0,0,0,0.05);
+            border-radius: 12px; 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.03); 
+            border: 1px solid #e3e6f0;
         }
+        
+        /* Modernized Table Headers */
         thead th { 
             position: sticky; 
             top: 0; 
             background-color: #f8f9fc !important; 
             z-index: 10; 
-            box-shadow: 0 1px 2px rgba(0,0,0,0.1); 
             border-bottom: 2px solid #e3e6f0 !important;
-            color: #4e73df;
+            color: #5a5c69;
             font-weight: 700;
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 0.05em;
+            padding: 1rem !important;
+        }
+        
+        .table > :not(caption) > * > * {
+            padding: 1rem 0.75rem;
+            border-bottom-color: #e3e6f0;
         }
         .table { margin-bottom: 0; }
         .align-middle { vertical-align: middle !important; }
+        
+        /* Hover state for rows */
+        tbody tr:hover {
+            background-color: #f8f9fc;
+        }
 
         /* Pagination matching theme */
         .pagination > li > a, .pagination > li > span {
@@ -313,7 +311,7 @@ $attendance_records = $stmt->fetchAll(PDO::FETCH_ASSOC);
             background-color: #ffffff;
             border: 1px solid #e3e6f0;
             margin-left: -1px;
-            padding: 5px 12px;
+            padding: 6px 14px;
             font-size: 13px;
         }
         .pagination > li.active > a, .pagination > li.active > span,
@@ -336,42 +334,43 @@ $attendance_records = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         /* Callout Styles */
         .page-callout {
-            background: rgba(255, 255, 255, 0.94);
-            border: 1px solid rgba(78, 115, 223, 0.25);
+            background: rgba(255, 255, 255, 0.95);
+            border: 1px solid rgba(78, 115, 223, 0.15);
             border-left: 5px solid #4e73df;
             border-radius: 12px;
-            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
-            padding: 14px 16px;
-            margin-bottom: 18px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+            padding: 18px 22px;
+            margin-bottom: 22px;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            gap: 12px;
+            gap: 15px;
         }
 
         .page-callout .callout-title {
             margin: 0;
-            font-weight: 700;
+            font-weight: 800;
             color: #2f4050;
-            font-size: 15px;
+            font-size: 16px;
         }
 
         .page-callout .callout-subtitle {
-            margin: 2px 0 0;
-            color: #5e6a75;
-            font-size: 12px;
+            margin: 4px 0 0;
+            color: #5a5c69;
+            font-size: 13px;
         }
 
         .page-callout .callout-icon {
-            width: 34px;
-            height: 34px;
+            width: 42px;
+            height: 42px;
             border-radius: 50%;
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            background: rgba(78, 115, 223, 0.12);
+            background: rgba(78, 115, 223, 0.1);
             color: #4e73df;
             flex-shrink: 0;
+            font-size: 18px;
         }
 
         @media (max-width: 767px) {
@@ -408,258 +407,266 @@ $attendance_records = $stmt->fetchAll(PDO::FETCH_ASSOC);
 </head>
 <body class="gray-bg">
 
-    <!-- Top Navigation -->
-    <nav class="navbar navbar-top p-0 sticky-top d-flex flex-nowrap align-items-stretch">
-        <a class="navbar-brand-custom text-decoration-none m-0" href="#">
-            <img src="img/logo/DICT.png" alt="DICT Logo" style="height: 24px;" class="me-2">
-            DICT Monday Flag Raising 
-        </a>
-        <ul class="nav ms-auto align-items-center flex-row pe-3 flex-nowrap">
-            <li class="nav-item d-none d-md-block">
-                <span class="nav-link text-muted pe-3" style="cursor: default;">My Attendance</span>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link d-flex align-items-center" data-bs-toggle="modal" data-bs-target="#profileModal" style="cursor: pointer;">
-                    <i class="fa fa-user-circle fs-5 me-1 text-muted"></i> 
-                    <strong class="text-secondary"><?php echo $fullname; ?></strong>
-                </a>
-            </li>
-            <li class="nav-item ms-1 ms-md-3">
-                <a class="nav-link text-danger d-flex align-items-center fw-bold" href="#" id="logoutBtn">
-                    <i class="fa fa-sign-out me-1 fs-5"></i> Log out
-                </a>
-            </li>
-        </ul>
-    </nav>
+    <!-- Main Wrapper containing the Sidebar and Page Wrapper -->
+    <div id="wrapper">
+        
+        <!-- Inject User Sidebar -->
+        <?php include 'sidebar_user.php'; ?>
+        
+        <!-- Inject User Topbar (Which opens #page-wrapper) -->
+        <?php include 'topbar_user.php'; ?>
 
-    <!-- Main Content Area -->
-    <div class="container wrapper wrapper-content animated fadeInRight mt-4">
-        <div class="row justify-content-center">
-            <div class="col-lg-12">
-                <div class="page-callout">
-                    <div>
-                        <p class="callout-title">My Attendance Timeline</p>
-                        <p class="callout-subtitle">Track your compliance history, filter by date, and review your submitted attendance records.</p>
-                    </div>
-                    <span class="callout-icon"><i class="fa fa-calendar-check-o"></i></span>
-                </div>
-                
-                <!-- IBox Panel -->
-                <div class="ibox">
-                    <div class="ibox-title">
-                        <h4 class="mb-0 text-primary fw-bold"><i class="fa fa-history me-2"></i> Attendance Records</h4>
+        <!-- Main Content Area -->
+        <div class="wrapper wrapper-content animated fadeInRight mt-3">
+            <div class="row justify-content-center">
+                <div class="col-lg-12 px-xl-4">
+                    <div class="page-callout">
+                        <div>
+                            <p class="callout-title">My Attendance Timeline</p>
+                            <p class="callout-subtitle">Track your compliance history, filter by date, and review your submitted attendance records.</p>
+                        </div>
+                        <span class="callout-icon"><i class="fa fa-calendar-check-o"></i></span>
                     </div>
                     
-                    <div class="ibox-content">
-
-                        <!-- Compliance Summary Stats Cards -->
-                        <div class="row mb-4" id="attendance_stats_container">
-                            <div class="col-md-4 mb-2 mb-md-0">
-                                <div class="p-3 bg-white border-start border-info border-start-3 stats-card text-center">
-                                    <h6 class="text-info mb-1 fw-bold"><i class="fa fa-list-ul"></i> Total Records</h6>
-                                    <h3 class="mb-0 text-info fw-bold"><?php echo $totalRecords; ?></h3>
-                                </div>
-                            </div>
-                            <div class="col-md-4 mb-2 mb-md-0">
-                                <div class="p-3 bg-white border-start border-success border-start-3 stats-card text-center">
-                                    <h6 class="text-success mb-1 fw-bold"><i class="fa fa-check-circle"></i> Compliant</h6>
-                                    <h3 class="mb-0 text-success fw-bold"><?php echo $compliantCount; ?></h3>
-                                </div>
-                            </div>
-                            <div class="col-md-4 mb-2 mb-md-0">
-                                <div class="p-3 bg-white border-start border-danger border-start-3 stats-card text-center">
-                                    <h6 class="text-danger mb-1 fw-bold"><i class="fa fa-times-circle"></i> Non-Compliant</h6>
-                                    <h3 class="mb-0 text-danger fw-bold"><?php echo $nonCompliantCount; ?></h3>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Show Entries Dropdown and Date Search -->
-                        <div class="row mb-4 align-items-center">
-                            <div class="col-md-6 col-lg-4 mb-3 mb-md-0">
-                                <form method="GET" action="my_attendance.php" id="entriesForm">
-                                    <div class="input-group filter-group">
-                                        <span class="input-group-text fw-bold">
-                                            <i class="fa fa-list me-2"></i> Show
-                                        </span>
-                                        <select name="limit" class="form-select fw-semibold" onchange="this.form.submit();">
-                                            <option value="10" <?php echo $limit == 10 ? 'selected' : ''; ?>>10 Entries</option>
-                                            <option value="25" <?php echo $limit == 25 ? 'selected' : ''; ?>>25 Entries</option>
-                                            <option value="50" <?php echo $limit == 50 ? 'selected' : ''; ?>>50 Entries</option>
-                                        </select>
-                                    </div>
-                                    <!-- Preserve page and date context -->
-                                    <input type="hidden" name="page" value="1">
-                                    <?php if ($dateFilter): ?>
-                                        <input type="hidden" name="date" value="<?php echo htmlspecialchars($dateFilter); ?>">
-                                    <?php endif; ?>
-                                </form>
-                            </div>
-                            <div class="col-md-6 col-lg-4">
-                                <form method="GET" action="my_attendance.php" id="dateSearchForm">
-                                    <div class="input-group filter-group">
-                                        <span class="input-group-text fw-bold">
-                                            <i class="fa fa-calendar me-2"></i> Date
-                                        </span>
-                                        <!-- Real-time Flatpickr date input -->
-                                        <input type="text" name="date" id="attendanceDatePicker" class="form-control fw-semibold" placeholder="Select a date..." value="<?php echo htmlspecialchars($dateFilter ?? ''); ?>">
-                                        <input type="hidden" name="limit" value="<?php echo $limit; ?>">
-                                        <?php if ($dateFilter): ?>
-                                            <a href="my_attendance.php?limit=<?php echo $limit; ?>" class="btn btn-clear px-3 d-flex align-items-center" title="Clear Filter">
-                                                <i class="fa fa-times"></i>
-                                            </a>
-                                        <?php endif; ?>
-                                    </div>
-                                </form>
-                            </div>
+                    <!-- IBox Panel -->
+                    <div class="ibox">
+                        <div class="ibox-title d-flex justify-content-between align-items-center">
+                            <h4 class="mb-0 text-primary fw-bold"><i class="fa fa-history me-2"></i> Record History</h4>
                         </div>
                         
-                        <!-- Main Table -->
-                        <div class="table-responsive border-0">
-                            <table class="table table-bordered mb-0 mt-0">
-                                <thead>
-                                    <tr>
-                                        <th>Date & Time Recorded</th>
-                                        <th>Designation</th>
-                                        <th>Division</th>
-                                        <th>Unit</th>
-                                        <th>Area of Assignment</th>
-                                        <th class="text-center">With ID</th>
-                                        <th class="text-center">Proper Attire</th>
-                                        <th class="text-center">Compliant</th>
-                                        <th class="text-center">Photo</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <?php if (count($attendance_records) > 0): ?>
-                                        <?php foreach ($attendance_records as $record): ?>
-                                            <?php 
-                                                // Pre-calculate status variables
-                                                $timeOnly = date('H:i:s', strtotime($record['time_recorded']));
-                                                $isLate = ($timeOnly > '08:00:00');
-                                                $hasId = ($record['with_id'] === 'Yes');
-                                                $hasProperAttire = ($record['is_asean'] === 'Yes');
+                        <div class="ibox-content">
 
-                                                // Format Date & Time for passing to photo modal
-                                                $formattedDateTime = date('M d, Y - h:i A', strtotime($record['time_recorded']));
-
-                                                // Determine compliance: Must NOT be late, MUST have ID, MUST have Proper Attire
-                                                $isCompliant = (!$isLate && $hasId && $hasProperAttire);
-                                                
-                                                // Badges and Icons
-                                                $withIdCheck = ($hasId) ? '<i class="fa fa-check text-success fa-lg"></i>' : '<i class="fa fa-times text-danger fa-lg"></i>';
-                                                $aseanCheck = ($hasProperAttire) ? '<i class="fa fa-check text-success fa-lg"></i>' : '<i class="fa fa-times text-danger fa-lg"></i>';
-                                                $compliantClass = ($isCompliant) ? 'bg-success' : 'bg-danger';
-                                                $compliantText = ($isCompliant) ? 'Yes' : 'No';
-                                            ?>
-                                            <tr>
-                                                <td class="align-middle">
-                                                    <strong class="text-dark"><?php echo date('M d, Y', strtotime($record['time_recorded'])); ?></strong><br>
-                                                    <div class="mt-1 d-flex align-items-center text-muted">
-                                                        <small><i class="fa fa-clock-o me-1"></i><?php echo date('h:i A', strtotime($record['time_recorded'])); ?></small>
-                                                    </div>
-                                                </td>
-                                                <td class="align-middle text-muted"><?php echo htmlspecialchars($record['designation'] ?? 'N/A'); ?></td>
-                                                <td class="align-middle text-muted"><?php echo htmlspecialchars($record['department'] ?? 'N/A'); ?></td>
-                                                <td class="align-middle text-muted"><?php echo htmlspecialchars($record['unit'] ?? 'N/A'); ?></td>
-                                                <td class="align-middle text-muted"><?php echo htmlspecialchars($record['area_of_assignment'] ?? 'N/A'); ?></td>
-                                                
-                                                <td class="text-center align-middle"><?php echo $withIdCheck; ?></td>
-                                                <td class="text-center align-middle"><?php echo $aseanCheck; ?></td>
-                                                <td class="text-center align-middle">
-                                                    <span class="badge <?php echo $compliantClass; ?> px-3 py-2 shadow-sm rounded-pill"><?php echo $compliantText; ?></span>
-                                                </td>
-
-                                                <td class="text-center align-middle">
-                                                    <?php if (!empty($record['photo_path'])): ?>
-                                                        <?php $safePath = htmlspecialchars($record['photo_path'], ENT_QUOTES, 'UTF-8'); ?>
-                                                        <img src="<?php echo $safePath; ?>" 
-                                                             alt="Photo" 
-                                                             class="shadow-sm"
-                                                             style="width: 45px; height: 45px; object-fit: cover; border-radius: 8px; cursor: pointer; border: 2px solid #e3e6f0; transition: transform 0.2s;" 
-                                                             onmouseover="this.style.transform='scale(1.1)'" 
-                                                             onmouseout="this.style.transform='scale(1)'"
-                                                             onclick="viewPhoto('<?php echo $safePath; ?>', '<?php echo $formattedDateTime; ?>')" 
-                                                             title="Click to view full image">
-                                                    <?php else: ?>
-                                                        <span class="badge bg-light text-muted border px-2 py-1 fw-normal"><i class="fa fa-eye-slash"></i> No Photo</span>
-                                                    <?php endif; ?>
-                                                </td>
-                                            </tr>
-                                        <?php endforeach; ?>
-                                    <?php else: ?>
-                                        <tr>
-                                            <td colspan="9" class="text-center text-muted py-5">
-                                                <i class="fa fa-folder-open-o fa-3x mb-3 d-block text-primary opacity-50"></i>
-                                                <em style="font-size: 1.2rem;">You have no attendance records at this time.</em>
-                                            </td>
-                                        </tr>
-                                    <?php endif; ?>
-                                </tbody>
-                            </table>
-                        </div>
-
-                        <!-- Footer Pagination -->
-                        <div class="row mt-4 align-items-center">
-                            <div class="col-sm-12 col-md-5">
-                                <?php
-                                    $startEntry = ($totalRecords > 0) ? $offset + 1 : 0;
-                                    $endEntry = min($offset + $limit, $totalRecords);
-                                ?>
-                                <div class="text-muted fw-bold" style="font-size: 13px;">
-                                    Showing <?php echo $startEntry; ?> to <?php echo $endEntry; ?> of <?php echo $totalRecords; ?> entries
+                            <!-- Compliance Summary Stats Cards (Modern Side-by-Side flex layout) -->
+                            <div class="row mb-4" id="attendance_stats_container">
+                                <div class="col-md-4 mb-3 mb-md-0">
+                                    <div class="p-4 bg-white border-start border-info border-start-4 stats-card d-flex align-items-center justify-content-between">
+                                        <div>
+                                            <h6 class="text-info mb-1 fw-bold text-uppercase" style="font-size: 0.75rem; letter-spacing: 0.05em;">Total Records</h6>
+                                            <h3 class="mb-0 text-dark fw-bold"><?php echo $totalRecords; ?></h3>
+                                        </div>
+                                        <div class="bg-info-subtle text-info rounded p-2 px-3">
+                                            <i class="fa fa-list-ul fa-lg"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4 mb-3 mb-md-0">
+                                    <div class="p-4 bg-white border-start border-success border-start-4 stats-card d-flex align-items-center justify-content-between">
+                                        <div>
+                                            <h6 class="text-success mb-1 fw-bold text-uppercase" style="font-size: 0.75rem; letter-spacing: 0.05em;">Compliant</h6>
+                                            <h3 class="mb-0 text-dark fw-bold"><?php echo $compliantCount; ?></h3>
+                                        </div>
+                                        <div class="bg-success-subtle text-success rounded p-2 px-3">
+                                            <i class="fa fa-check-circle fa-lg"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4 mb-3 mb-md-0">
+                                    <div class="p-4 bg-white border-start border-danger border-start-4 stats-card d-flex align-items-center justify-content-between">
+                                        <div>
+                                            <h6 class="text-danger mb-1 fw-bold text-uppercase" style="font-size: 0.75rem; letter-spacing: 0.05em;">Non-Compliant</h6>
+                                            <h3 class="mb-0 text-dark fw-bold"><?php echo $nonCompliantCount; ?></h3>
+                                        </div>
+                                        <div class="bg-danger-subtle text-danger rounded p-2 px-3">
+                                            <i class="fa fa-times-circle fa-lg"></i>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
-                            <div class="col-sm-12 col-md-7 d-flex justify-content-md-end justify-content-center mt-3 mt-md-0">
-                                <?php if ($totalPages > 1): ?>
-                                    <ul class="pagination pagination-sm mb-0 shadow-sm rounded">
-                                        <!-- Previous Button -->
-                                        <li class="page-item <?php echo $page <= 1 ? 'disabled' : ''; ?>">
-                                            <a class="page-link" href="?limit=<?php echo $limit; ?>&page=<?php echo $page - 1; ?><?php echo $dateFilter ? '&date=' . urlencode($dateFilter) : ''; ?>">Previous</a>
-                                        </li>
-                                        
-                                        <!-- Page Numbers -->
-                                        <?php
-                                            // Show a window of max 5 pages around the current page
-                                            $startPage = max(1, $page - 2);
-                                            $endPage = min($totalPages, $page + 2);
-                                            
-                                            if ($startPage > 1) {
-                                                echo '<li class="page-item"><a class="page-link" href="?limit=' . $limit . '&page=1' . ($dateFilter ? '&date=' . urlencode($dateFilter) : '') . '">1</a></li>';
-                                                if ($startPage > 2) {
-                                                    echo '<li class="page-item disabled"><span class="page-link">...</span></li>';
-                                                }
-                                            }
 
-                                            for ($i = $startPage; $i <= $endPage; $i++): ?>
-                                                <li class="page-item <?php echo $page == $i ? 'active' : ''; ?>">
-                                                    <a class="page-link" href="?limit=<?php echo $limit; ?>&page=<?php echo $i; ?><?php echo $dateFilter ? '&date=' . urlencode($dateFilter) : ''; ?>"><?php echo $i; ?></a>
-                                                </li>
-                                            <?php endfor; 
-                                            
-                                            if ($endPage < $totalPages) {
-                                                if ($endPage < $totalPages - 1) {
-                                                    echo '<li class="page-item disabled"><span class="page-link">...</span></li>';
-                                                }
-                                                echo '<li class="page-item"><a class="page-link" href="?limit=' . $limit . '&page=' . $totalPages . ($dateFilter ? '&date=' . urlencode($dateFilter) : '') . '">' . $totalPages . '</a></li>';
-                                            }
-                                        ?>
-
-                                        <!-- Next Button -->
-                                        <li class="page-item <?php echo $page >= $totalPages ? 'disabled' : ''; ?>">
-                                            <a class="page-link" href="?limit=<?php echo $limit; ?>&page=<?php echo $page + 1; ?><?php echo $dateFilter ? '&date=' . urlencode($dateFilter) : ''; ?>">Next</a>
-                                        </li>
-                                    </ul>
-                                <?php endif; ?>
+                            <!-- Show Entries Dropdown and Date Search -->
+                            <div class="row mb-4 align-items-center justify-content-between">
+                                <div class="col-md-5 col-lg-4 mb-3 mb-md-0">
+                                    <form method="GET" action="my_attendance.php" id="entriesForm">
+                                        <div class="input-group filter-group">
+                                            <span class="input-group-text fw-bold">
+                                                <i class="fa fa-list me-2"></i> Show
+                                            </span>
+                                            <select name="limit" class="form-select fw-semibold" onchange="this.form.submit();">
+                                                <option value="10" <?php echo $limit == 10 ? 'selected' : ''; ?>>10 Entries</option>
+                                                <option value="25" <?php echo $limit == 25 ? 'selected' : ''; ?>>25 Entries</option>
+                                                <option value="50" <?php echo $limit == 50 ? 'selected' : ''; ?>>50 Entries</option>
+                                            </select>
+                                        </div>
+                                        <!-- Preserve page and date context -->
+                                        <input type="hidden" name="page" value="1">
+                                        <?php if ($dateFilter): ?>
+                                            <input type="hidden" name="date" value="<?php echo htmlspecialchars($dateFilter); ?>">
+                                        <?php endif; ?>
+                                    </form>
+                                </div>
+                                <div class="col-md-7 col-lg-5">
+                                    <form method="GET" action="my_attendance.php" id="dateSearchForm">
+                                        <div class="input-group filter-group">
+                                            <span class="input-group-text fw-bold">
+                                                <i class="fa fa-calendar me-2"></i> Filter Date
+                                            </span>
+                                            <!-- Real-time Flatpickr date input -->
+                                            <input type="text" name="date" id="attendanceDatePicker" class="form-control fw-semibold" placeholder="Select a recorded date..." value="<?php echo htmlspecialchars($dateFilter ?? ''); ?>">
+                                            <input type="hidden" name="limit" value="<?php echo $limit; ?>">
+                                            <?php if ($dateFilter): ?>
+                                                <a href="my_attendance.php?limit=<?php echo $limit; ?>" class="btn btn-clear px-3 d-flex align-items-center" title="Clear Filter">
+                                                    <i class="fa fa-times"></i>
+                                                </a>
+                                            <?php endif; ?>
+                                        </div>
+                                    </form>
+                                </div>
                             </div>
+                            
+                            <!-- Main Table -->
+                            <div class="table-responsive border-0">
+                                <table class="table mb-0 mt-0">
+                                    <thead>
+                                        <tr>
+                                            <th>Date & Time</th>
+                                            <th>Designation</th>
+                                            <th>Division</th>
+                                            <th>Unit</th>
+                                            <th>Area of Assignment</th>
+                                            <th class="text-center">With ID</th>
+                                            <th class="text-center">Proper Attire</th>
+                                            <th class="text-center">Compliant</th>
+                                            <th class="text-center">Photo</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <?php if (count($attendance_records) > 0): ?>
+                                            <?php foreach ($attendance_records as $record): ?>
+                                                <?php 
+                                                    // Pre-calculate status variables
+                                                    $timeOnly = date('H:i:s', strtotime($record['time_recorded']));
+                                                    $isLate = ($timeOnly > '08:00:00');
+                                                    $hasId = ($record['with_id'] === 'Yes');
+                                                    $hasProperAttire = ($record['is_asean'] === 'Yes');
+
+                                                    // Format Date & Time for passing to photo modal
+                                                    $formattedDateTime = date('M d, Y - h:i A', strtotime($record['time_recorded']));
+
+                                                    // Determine compliance: Must NOT be late, MUST have ID, MUST have Proper Attire
+                                                    $isCompliant = (!$isLate && $hasId && $hasProperAttire);
+                                                    
+                                                    // Badges and Icons
+                                                    $withIdCheck = ($hasId) ? '<i class="fa fa-check text-success fa-lg"></i>' : '<i class="fa fa-times text-danger fa-lg"></i>';
+                                                    $aseanCheck = ($hasProperAttire) ? '<i class="fa fa-check text-success fa-lg"></i>' : '<i class="fa fa-times text-danger fa-lg"></i>';
+                                                    $compliantClass = ($isCompliant) ? 'bg-success' : 'bg-danger';
+                                                    $compliantText = ($isCompliant) ? 'Yes' : 'No';
+                                                ?>
+                                                <tr>
+                                                    <td class="align-middle text-nowrap">
+                                                        <strong class="text-dark"><i class="fa fa-calendar-o text-muted me-1"></i> <?php echo date('M d, Y', strtotime($record['time_recorded'])); ?></strong><br>
+                                                        <div class="mt-1 text-muted" style="font-size: 12px;">
+                                                            <i class="fa fa-clock-o me-1"></i><?php echo date('h:i A', strtotime($record['time_recorded'])); ?>
+                                                        </div>
+                                                    </td>
+                                                    <td class="align-middle text-dark fw-semibold"><?php echo htmlspecialchars($record['designation'] ?? 'N/A'); ?></td>
+                                                    <td class="align-middle text-muted"><?php echo htmlspecialchars($record['department'] ?? 'N/A'); ?></td>
+                                                    <td class="align-middle text-muted"><?php echo htmlspecialchars($record['unit'] ?? 'N/A'); ?></td>
+                                                    <td class="align-middle text-muted"><?php echo htmlspecialchars($record['area_of_assignment'] ?? 'N/A'); ?></td>
+                                                    
+                                                    <td class="text-center align-middle"><?php echo $withIdCheck; ?></td>
+                                                    <td class="text-center align-middle"><?php echo $aseanCheck; ?></td>
+                                                    <td class="text-center align-middle">
+                                                        <span class="badge <?php echo $compliantClass; ?> px-3 py-2 shadow-sm rounded-pill fw-bold" style="font-size: 12px;"><?php echo $compliantText; ?></span>
+                                                    </td>
+
+                                                    <td class="text-center align-middle">
+                                                        <?php if (!empty($record['photo_path'])): ?>
+                                                            <?php $safePath = htmlspecialchars($record['photo_path'], ENT_QUOTES, 'UTF-8'); ?>
+                                                            <img src="<?php echo $safePath; ?>" 
+                                                                 alt="Photo" 
+                                                                 class="shadow-sm"
+                                                                 style="width: 45px; height: 45px; object-fit: cover; border-radius: 8px; cursor: pointer; border: 2px solid #e3e6f0; transition: transform 0.2s;" 
+                                                                 onmouseover="this.style.transform='scale(1.1)'" 
+                                                                 onmouseout="this.style.transform='scale(1)'"
+                                                                 onclick="viewPhoto('<?php echo $safePath; ?>', '<?php echo $formattedDateTime; ?>')" 
+                                                                 title="Click to view full image">
+                                                        <?php else: ?>
+                                                            <span class="badge bg-light text-muted border px-2 py-1 fw-normal"><i class="fa fa-eye-slash"></i> No Photo</span>
+                                                        <?php endif; ?>
+                                                    </td>
+                                                </tr>
+                                            <?php endforeach; ?>
+                                        <?php else: ?>
+                                            <tr>
+                                                <td colspan="9" class="text-center py-5">
+                                                    <div class="d-flex flex-column align-items-center justify-content-center py-4">
+                                                        <div class="rounded-circle bg-light d-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
+                                                            <i class="fa fa-folder-open-o fa-3x text-primary opacity-50"></i>
+                                                        </div>
+                                                        <h5 class="fw-bold text-dark mb-1">No Records Found</h5>
+                                                        <p class="text-muted mb-0">You have no attendance records matching your criteria.</p>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        <?php endif; ?>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <!-- Footer Pagination -->
+                            <div class="row mt-4 align-items-center">
+                                <div class="col-sm-12 col-md-5">
+                                    <?php
+                                        $startEntry = ($totalRecords > 0) ? $offset + 1 : 0;
+                                        $endEntry = min($offset + $limit, $totalRecords);
+                                    ?>
+                                    <div class="text-muted fw-bold" style="font-size: 13px;">
+                                        Showing <?php echo $startEntry; ?> to <?php echo $endEntry; ?> of <?php echo $totalRecords; ?> entries
+                                    </div>
+                                </div>
+                                <div class="col-sm-12 col-md-7 d-flex justify-content-md-end justify-content-center mt-3 mt-md-0">
+                                    <?php if ($totalPages > 1): ?>
+                                        <ul class="pagination pagination-sm mb-0 shadow-sm rounded">
+                                            <!-- Previous Button -->
+                                            <li class="page-item <?php echo $page <= 1 ? 'disabled' : ''; ?>">
+                                                <a class="page-link fw-semibold" href="?limit=<?php echo $limit; ?>&page=<?php echo $page - 1; ?><?php echo $dateFilter ? '&date=' . urlencode($dateFilter) : ''; ?>">Previous</a>
+                                            </li>
+                                            
+                                            <!-- Page Numbers -->
+                                            <?php
+                                                // Show a window of max 5 pages around the current page
+                                                $startPage = max(1, $page - 2);
+                                                $endPage = min($totalPages, $page + 2);
+                                                
+                                                if ($startPage > 1) {
+                                                    echo '<li class="page-item"><a class="page-link fw-semibold" href="?limit=' . $limit . '&page=1' . ($dateFilter ? '&date=' . urlencode($dateFilter) : '') . '">1</a></li>';
+                                                    if ($startPage > 2) {
+                                                        echo '<li class="page-item disabled"><span class="page-link">...</span></li>';
+                                                    }
+                                                }
+
+                                                for ($i = $startPage; $i <= $endPage; $i++): ?>
+                                                    <li class="page-item <?php echo $page == $i ? 'active' : ''; ?>">
+                                                        <a class="page-link fw-semibold" href="?limit=<?php echo $limit; ?>&page=<?php echo $i; ?><?php echo $dateFilter ? '&date=' . urlencode($dateFilter) : ''; ?>"><?php echo $i; ?></a>
+                                                    </li>
+                                                <?php endfor; 
+                                                
+                                                if ($endPage < $totalPages) {
+                                                    if ($endPage < $totalPages - 1) {
+                                                        echo '<li class="page-item disabled"><span class="page-link">...</span></li>';
+                                                    }
+                                                    echo '<li class="page-item"><a class="page-link fw-semibold" href="?limit=' . $limit . '&page=' . $totalPages . ($dateFilter ? '&date=' . urlencode($dateFilter) : '') . '">' . $totalPages . '</a></li>';
+                                                }
+                                            ?>
+
+                                            <!-- Next Button -->
+                                            <li class="page-item <?php echo $page >= $totalPages ? 'disabled' : ''; ?>">
+                                                <a class="page-link fw-semibold" href="?limit=<?php echo $limit; ?>&page=<?php echo $page + 1; ?><?php echo $dateFilter ? '&date=' . urlencode($dateFilter) : ''; ?>">Next</a>
+                                            </li>
+                                        </ul>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+
                         </div>
-
                     </div>
-                </div>
 
+                </div>
             </div>
         </div>
-    </div>
+
+    </div> <!-- Close page-wrapper opened inside topbar_user.php -->
+    </div> <!-- Close main wrapper -->
 
     <!-- INCLUDE EXTERNAL MODALS -->
     <?php include 'my_attendance_modals.php'; ?>
