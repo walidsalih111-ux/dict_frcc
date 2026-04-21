@@ -159,12 +159,14 @@ $attendance_records = $stmt->fetchAll(PDO::FETCH_ASSOC);
         .navbar-brand-custom {
             background-color: #4e73df;
             color: #ffffff !important;
-            padding: 18px 25px;
+            padding: 0 25px;
             font-size: 14px;
             font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 0.5px;
-            display: inline-block;
+            display: flex;
+            align-items: center;
+            align-self: stretch;
             margin-right: 20px;
         }
 
@@ -406,31 +408,27 @@ $attendance_records = $stmt->fetchAll(PDO::FETCH_ASSOC);
 <body class="gray-bg">
 
     <!-- Top Navigation -->
-    <nav class="navbar navbar-expand-lg navbar-top p-0 sticky-top">
-        <a class="navbar-brand-custom text-decoration-none d-inline-flex align-items-center" href="#">
+    <nav class="navbar navbar-top p-0 sticky-top d-flex flex-nowrap align-items-stretch">
+        <a class="navbar-brand-custom text-decoration-none m-0" href="#">
             <img src="img/logo/DICT.png" alt="DICT Logo" style="height: 24px;" class="me-2">
             DICT Monday Flag Raising 
         </a>
-        <button class="navbar-toggler me-3" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-            <span class="fa fa-bars text-primary"></span>
-        </button>
-        <div class="collapse navbar-collapse px-3" id="navbarNav">
-            <ul class="navbar-nav ms-auto align-items-center">
-                <li class="nav-item">
-                    <span class="text-muted me-3 fw-bold">My Attendance</span>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" data-bs-toggle="modal" data-bs-target="#profileModal" style="cursor: pointer;">
-                        <i class="fa fa-user-circle-o me-1 fs-5 align-middle"></i> <strong><?php echo $fullname; ?></strong>
-                    </a>
-                </li>
-                <li class="nav-item ms-2 border-start ps-3">
-                    <a class="nav-link text-danger" href="#" id="logoutBtn">
-                        <i class="fa fa-sign-out"></i> Log out
-                    </a>
-                </li>
-            </ul>
-        </div>
+        <ul class="nav ms-auto align-items-center flex-row pe-3 flex-nowrap">
+            <li class="nav-item d-none d-md-block">
+                <span class="nav-link text-muted pe-3" style="cursor: default;">My Attendance</span>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link d-flex align-items-center" data-bs-toggle="modal" data-bs-target="#profileModal" style="cursor: pointer;">
+                    <i class="fa fa-user-circle fs-5 me-1 text-muted"></i> 
+                    <strong class="text-secondary"><?php echo $fullname; ?></strong>
+                </a>
+            </li>
+            <li class="nav-item ms-1 ms-md-3">
+                <a class="nav-link text-danger d-flex align-items-center fw-bold" href="#" id="logoutBtn">
+                    <i class="fa fa-sign-out me-1 fs-5"></i> Log out
+                </a>
+            </li>
+        </ul>
     </nav>
 
     <!-- Main Content Area -->
