@@ -112,10 +112,12 @@ $attendance_records = $stmt->fetchAll(PDO::FETCH_ASSOC);
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>My Attendance | DICT Monday Flag Raising</title>
 
-    <!-- Bootstrap 5 -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <!-- Bootstrap 5 & Inspinia CSS -->
+    <link href="css/bootstrap.min.css" rel="stylesheet" />
+    <link href="font-awesome/css/font-awesome.css" rel="stylesheet" />
+    <link href="css/animate.css" rel="stylesheet" />
+    <link href="css/style.css" rel="stylesheet" />
+    
     <!-- SweetAlert2 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.32/dist/sweetalert2.min.css" rel="stylesheet">
     <!-- Flatpickr CSS for Date Picker -->
@@ -132,7 +134,7 @@ $attendance_records = $stmt->fetchAll(PDO::FETCH_ASSOC);
         }
 
         /* Animated Gradient Background matching dashboard */
-        body.gray-bg, .wrapper-content {
+        body.gray-bg, .wrapper.wrapper-content {
             background: linear-gradient(135deg, #4e73df, #1cc88a) !important;
             background-size: 200% 200% !important;
             animation: gradientBG 10s ease infinite !important;
@@ -399,17 +401,6 @@ $attendance_records = $stmt->fetchAll(PDO::FETCH_ASSOC);
             font-size: 40px;
             border: 3px solid #e3e6f0;
         }
-
-        /* Entry Animation */
-        @keyframes fadeInRight {
-            0% { opacity: 0; transform: translateX(20px); }
-            100% { opacity: 1; transform: translateX(0); }
-        }
-        .animated.fadeInRight {
-            animation-name: fadeInRight;
-            animation-duration: 0.6s;
-            animation-fill-mode: both;
-        }
     </style>
 </head>
 <body class="gray-bg">
@@ -443,7 +434,7 @@ $attendance_records = $stmt->fetchAll(PDO::FETCH_ASSOC);
     </nav>
 
     <!-- Main Content Area -->
-    <div class="container wrapper-content animated fadeInRight mt-4">
+    <div class="container wrapper wrapper-content animated fadeInRight mt-4">
         <div class="row justify-content-center">
             <div class="col-lg-12">
                 <div class="page-callout">
@@ -492,7 +483,7 @@ $attendance_records = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                         <span class="input-group-text fw-bold">
                                             <i class="fa fa-list me-2"></i> Show
                                         </span>
-                                        <select name="limit" class="form-select fw-semibold" onchange="document.getElementById('entriesForm').submit();">
+                                        <select name="limit" class="form-select fw-semibold" onchange="this.form.submit();">
                                             <option value="10" <?php echo $limit == 10 ? 'selected' : ''; ?>>10 Entries</option>
                                             <option value="25" <?php echo $limit == 25 ? 'selected' : ''; ?>>25 Entries</option>
                                             <option value="50" <?php echo $limit == 50 ? 'selected' : ''; ?>>50 Entries</option>
@@ -586,7 +577,9 @@ $attendance_records = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                                         <img src="<?php echo $safePath; ?>" 
                                                              alt="Photo" 
                                                              class="shadow-sm"
-                                                             style="width: 45px; height: 45px; object-fit: cover; border-radius: 8px; cursor: pointer; border: 2px solid #e3e6f0;" 
+                                                             style="width: 45px; height: 45px; object-fit: cover; border-radius: 8px; cursor: pointer; border: 2px solid #e3e6f0; transition: transform 0.2s;" 
+                                                             onmouseover="this.style.transform='scale(1.1)'" 
+                                                             onmouseout="this.style.transform='scale(1)'"
                                                              onclick="viewPhoto('<?php echo $safePath; ?>', '<?php echo $formattedDateTime; ?>')" 
                                                              title="Click to view full image">
                                                     <?php else: ?>
