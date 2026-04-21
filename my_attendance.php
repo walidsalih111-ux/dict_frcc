@@ -749,7 +749,9 @@ $attendance_records = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 <div class="modal-body p-4">
                     <div class="mb-3">
                         <label class="form-label small text-muted fw-bold">Username</label>
+                        <input type="hidden" name="emp_id" id="acc_emp_id" value="<?php echo htmlspecialchars($userProfile['emp_id'] ?? ''); ?>">
                         <input type="text" name="username" id="acc_username" class="form-control" required value="<?php echo htmlspecialchars($_SESSION['username'] ?? ''); ?>">
+                        <small id="usernameFeedback" class="form-text mt-1 d-block"></small>
                     </div>
                     <div class="mb-3">
                         <label class="form-label small text-muted fw-bold">Email</label>
@@ -877,10 +879,75 @@ $attendance_records = $stmt->fetchAll(PDO::FETCH_ASSOC);
             });
         }
 
+        // Setup Username Real-Time Validation
+        var isUsernameValid = true;
+        const usernameInput = document.getElementById('acc_username');
+        const usernameFeedback = document.getElementById('usernameFeedback');
+        const saveAccBtn = document.getElementById('saveAccountBtn');
+        const empIdInput = document.getElementById('acc_emp_id');
+        let usernameTimeout = null;
+
+        if (usernameInput) {
+            const originalUsername = usernameInput.value.trim();
+
+            usernameInput.addEventListener('input', function() {
+                clearTimeout(usernameTimeout);
+                const currentVal = this.value.trim();
+                const empId = empIdInput ? empIdInput.value : '';
+
+                // Reset visual state
+                usernameFeedback.textContent = '';
+                usernameInput.classList.remove('is-invalid', 'is-valid');
+                saveAccBtn.disabled = false;
+                isUsernameValid = true;
+
+                if (currentVal === '') return;
+                
+                // If it is identical to their current username, no check needed
+                if (currentVal === originalUsername) return;
+
+                // Debounce API call
+                usernameTimeout = setTimeout(() => {
+                    const formData = new FormData();
+                    formData.append('username', currentVal);
+                    formData.append('emp_id', empId);
+
+                    fetch('check_username.php', {
+                        method: 'POST',
+                        body: formData
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (!data.available) {
+                            usernameInput.classList.add('is-invalid');
+                            usernameFeedback.textContent = 'Username is already taken.';
+                            usernameFeedback.className = 'text-danger mt-1 d-block small fw-bold';
+                            saveAccBtn.disabled = true;
+                            isUsernameValid = false;
+                        } else {
+                            usernameInput.classList.add('is-valid');
+                            usernameFeedback.textContent = 'Username is available.';
+                            usernameFeedback.className = 'text-success mt-1 d-block small fw-bold';
+                            saveAccBtn.disabled = false;
+                            isUsernameValid = true;
+                        }
+                    })
+                    .catch(err => console.error('Error checking username:', err));
+                }, 500); 
+            });
+        }
+
         // Validate account settings form before submit
         var accountForm = document.getElementById('accountSettingsForm');
         if (accountForm) {
             accountForm.addEventListener('submit', function(e) {
+                if (!isUsernameValid) {
+                    e.preventDefault();
+                    Swal.fire({icon:'error', title:'Invalid Username', text: 'Please choose an available username.', confirmButtonColor: '#4e73df'});
+                    usernameInput.focus();
+                    return false;
+                }
+
                 var newPass = document.getElementById('acc_new_password').value.trim();
                 var confPass = document.getElementById('acc_confirm_password').value.trim();
 
@@ -896,7 +963,6 @@ $attendance_records = $stmt->fetchAll(PDO::FETCH_ASSOC);
                         return false;
                     }
                 }
-                // allow submit
             });
         }
 
