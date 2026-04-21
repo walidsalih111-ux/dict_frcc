@@ -760,9 +760,9 @@ $attendance_records = $stmt->fetchAll(PDO::FETCH_ASSOC);
                     
                     <div class="mb-3">
                         <label class="form-label small text-muted fw-bold">Current Password</label>
-                        <div class="position-relative">
-                            <input type="password" name="current_password" id="acc_current_password" class="form-control pe-5">
-                            <span class="position-absolute top-50 end-0 translate-middle-y me-3 toggle-password" onclick="togglePassword('acc_current_password', this)" style="cursor: pointer; color: #858796;">
+                        <div style="position: relative;">
+                            <input type="password" name="current_password" id="acc_current_password" class="form-control" style="padding-right: 40px;">
+                            <span class="toggle-password" onclick="togglePassword('acc_current_password', this)" style="position: absolute; right: 15px; top: 50%; transform: translateY(-50%); cursor: pointer; color: #858796; z-index: 10;">
                                 <i class="fa fa-eye"></i>
                             </span>
                         </div>
@@ -770,9 +770,9 @@ $attendance_records = $stmt->fetchAll(PDO::FETCH_ASSOC);
                     
                     <div class="mb-3">
                         <label class="form-label small text-muted fw-bold">New Password</label>
-                        <div class="position-relative">
-                            <input type="password" name="new_password" id="acc_new_password" class="form-control pe-5" minlength="8" placeholder="At least 8 characters">
-                            <span class="position-absolute top-50 end-0 translate-middle-y me-3 toggle-password" onclick="togglePassword('acc_new_password', this)" style="cursor: pointer; color: #858796;">
+                        <div style="position: relative;">
+                            <input type="password" name="new_password" id="acc_new_password" class="form-control" style="padding-right: 40px;" minlength="8" placeholder="At least 8 characters">
+                            <span class="toggle-password" onclick="togglePassword('acc_new_password', this)" style="position: absolute; right: 15px; top: 50%; transform: translateY(-50%); cursor: pointer; color: #858796; z-index: 10;">
                                 <i class="fa fa-eye"></i>
                             </span>
                         </div>
@@ -780,9 +780,9 @@ $attendance_records = $stmt->fetchAll(PDO::FETCH_ASSOC);
                     
                     <div class="mb-3">
                         <label class="form-label small text-muted fw-bold">Confirm New Password</label>
-                        <div class="position-relative">
-                            <input type="password" name="confirm_password" id="acc_confirm_password" class="form-control pe-5">
-                            <span class="position-absolute top-50 end-0 translate-middle-y me-3 toggle-password" onclick="togglePassword('acc_confirm_password', this)" style="cursor: pointer; color: #858796;">
+                        <div style="position: relative;">
+                            <input type="password" name="confirm_password" id="acc_confirm_password" class="form-control" style="padding-right: 40px;">
+                            <span class="toggle-password" onclick="togglePassword('acc_confirm_password', this)" style="position: absolute; right: 15px; top: 50%; transform: translateY(-50%); cursor: pointer; color: #858796; z-index: 10;">
                                 <i class="fa fa-eye"></i>
                             </span>
                         </div>
