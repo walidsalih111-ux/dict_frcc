@@ -198,7 +198,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
         
         <h3>DICT Monday Flag Raising</h3>
-        <p>Admin Login</p>
+        <p>Login Page</p>
 
         <!-- Live Clock -->
         <div class="clock-panel">
