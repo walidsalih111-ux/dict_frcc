@@ -22,6 +22,7 @@ $role_query = $conn->query("SELECT DISTINCT role FROM user_account WHERE role IS
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
     <title>DICT Monday Flag Raising | Employee Management</title>
+    <link rel="icon" type="image/png" href="img/logo/DICT.png">
 
     <link href="css/bootstrap.min.css" rel="stylesheet" />
     <link href="font-awesome/css/font-awesome.css" rel="stylesheet" />

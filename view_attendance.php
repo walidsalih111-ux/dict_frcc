@@ -107,6 +107,7 @@ try {
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Attendance: <?php echo $formattedDate; ?></title>
+    <link rel="icon" type="image/png" href="img/logo/DICT.png">
 
     <!-- Bootstrap 5 & Inspinia CSS -->
     <link href="css/bootstrap.min.css" rel="stylesheet" />
@@ -567,7 +568,13 @@ try {
                     </div>
 
                     <div class="row">
-                        <div class="col-md-4">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>Designation</label>
+                                <input type="text" name="designation" id="edit_attendance_designation" class="form-control" required>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
                             <div class="form-group">
                                 <label>With ID</label>
                                 <select name="with_id" id="edit_attendance_with_id" class="form-control" required>
@@ -576,7 +583,7 @@ try {
                                 </select>
                             </div>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-2">
                             <div class="form-group">
                                 <label>Proper Attire</label>
                                 <select name="proper_attire" id="edit_attendance_proper_attire" class="form-control" required>
@@ -585,7 +592,7 @@ try {
                                 </select>
                             </div>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-2">
                             <div class="form-group">
                                 <label>Compliant</label>
                                 <select name="is_compliant" id="edit_attendance_is_compliant" class="form-control" required>
@@ -596,7 +603,7 @@ try {
                         </div>
                     </div>
 
-                    <div class="alert alert-info mb-0 mt-3">
+                    <div class="alert alert-info mb-0">
                         The attached photo stays unchanged when you update this record.
                     </div>
                 </div>
@@ -628,6 +635,7 @@ try {
             $('#edit_attendance_employee_name').val(button.data('employee-name'));
             $('#edit_original_time_recorded').val(button.data('time-recorded'));
             $('#edit_attendance_time_recorded').val(button.data('time-recorded'));
+            $('#edit_attendance_designation').val(button.data('designation'));
             $('#edit_attendance_with_id').val(button.data('with-id'));
             $('#edit_attendance_proper_attire').val(button.data('proper-attire'));
             $('#edit_attendance_is_compliant').val(String(button.data('is-compliant')));
