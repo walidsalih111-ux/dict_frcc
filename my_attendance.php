@@ -261,6 +261,24 @@ $attendance_records = $stmt->fetchAll(PDO::FETCH_ASSOC);
         .flatpickr-input[readonly] {
             background-color: #ffffff !important;
         }
+        
+        /* HIGHLIGHT CALENDAR FILTER BLACK COLOR */
+        #attendanceDatePicker,
+        #attendanceDatePicker.flatpickr-input[readonly] {
+            color: #000000 !important;
+            font-weight: 800 !important;
+        }
+
+        /* Highlight the enabled (recorded) dates inside the calendar dropdown */
+        .flatpickr-day:not(.flatpickr-disabled) {
+            color: #000000 !important;
+            font-weight: bold !important;
+        }
+        .flatpickr-day.selected {
+            color: #ffffff !important; /* Keep text white when selected for contrast */
+            background: #4e73df !important;
+            border-color: #4e73df !important;
+        }
 
         /* Table & Layout */
         .table-responsive { 
