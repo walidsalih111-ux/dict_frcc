@@ -40,20 +40,28 @@ The **DICT Monday Flag Raising Attendance and Compliance Checking System** is a 
 ### Accessing the System
 
 1. Open your web browser and navigate to the system's URL
-2. Enter your **Username** and **Password** on the login page
-3. Click **Login**
+2. On the login page, note the live clock displaying the current time and date
+3. Enter your **Username** and **Password** on the login page (use the eye icon to toggle password visibility)
+4. Click **Login**
 
 ### Initial Login
 When you first access the system, you will be assigned a role:
 - **Admin**: Full system access and employee management capabilities
 - **Employee**: Limited access to personal attendance records and check-in
 
-### Changing Your Password
-To change your password after login:
-1. Go to your user profile settings (if available)
-2. Select "Change Password"
-3. Enter your current password and new password
-4. Click "Save"
+### Changing Your Account Settings
+After logging in, users can update their account information:
+1. Navigate to your account settings page
+2. Update your **Username**, **Email**, or **Password** as needed
+3. For password changes, enter your current password and the new password (minimum 8 characters)
+4. Click "Save" to apply changes
+
+### Forgot Password
+If you forget your password:
+1. On the login page, click the "Forgot Password" link
+2. Enter your email address associated with your account
+3. Check your email for a password reset link
+4. Follow the link to reset your password
 
 ---
 
