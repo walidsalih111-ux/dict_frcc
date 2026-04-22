@@ -11,7 +11,7 @@
             <form method="POST" action="process_edit.php" id="editEmployeeForm">
                 <div class="modal-body">
                     <!-- Hidden ID to know which employee to update -->
-                    <input type="hidden" name="emp_id" id="edit_emp_id">
+                    <input type="hidden" name="emp_id" id="editEmpId">
 
                     <div class="row">
                         <div class="col-md-12">
@@ -108,7 +108,8 @@
                         <div class="col-md-3">
                             <div class="form-group">
                                 <label>Username</label>
-                                <input type="text" name="username" id="edit_username" class="form-control" placeholder="Update username">
+                                <input type="text" name="username" id="editUsername" class="form-control" placeholder="Update username">
+                                <div id="editUsernameMsg" class="mt-1" style="display: none; font-size: 0.85em;"></div>
                             </div>
                         </div>
                         <div class="col-md-3">
@@ -140,7 +141,7 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                    <button type="submit" id="editEmployeeSubmitBtn" class="btn btn-primary">Save Changes</button>
                 </div>
             </form>
         </div>
@@ -168,7 +169,7 @@
             var username = $(this).data('username'); 
 
             // Populate the Edit Modal fields
-            $('#edit_emp_id').val(id);
+            $('#editEmpId').val(id);
             $('#edit_full').val(full);
             $('#edit_email').val(email);
             $('#edit_age').val(age);
@@ -180,7 +181,7 @@
             $('#edit_status').val(status);
             
             // Populate Account Details
-            $('#edit_username').val(username);
+            $('#editUsername').val(username);
             $('#edit_password').val(''); // Always clear out the password field
             $('#edit_confirm_password').val(''); // Clear confirm password
             $('#edit_confirm_password').removeClass('is-invalid'); // Remove any error styling

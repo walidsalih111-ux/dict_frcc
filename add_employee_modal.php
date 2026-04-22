@@ -105,7 +105,10 @@
                         <div class="col-md-3">
                             <div class="form-group">
                                 <label>Username</label>
-                                <input type="text" name="username" class="form-control" placeholder="Assign a username" required>
+                                <!-- Added id="addUsername" -->
+                                <input type="text" name="username" id="addUsername" class="form-control" placeholder="Assign a username" required>
+                                <!-- Added the message container for AJAX feedback -->
+                                <div id="addUsernameMsg" class="mt-1" style="display: none; font-size: 0.85em;"></div>
                             </div>
                         </div>
                         <div class="col-md-3">
@@ -135,7 +138,8 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-                    <button type="submit" class="btn btn-primary">Save Employee & Account</button>
+                    <!-- Added id="addEmployeeSubmitBtn" -->
+                    <button type="submit" id="addEmployeeSubmitBtn" class="btn btn-primary">Save Employee & Account</button>
                 </div>
             </form>
         </div>
