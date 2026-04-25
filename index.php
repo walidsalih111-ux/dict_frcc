@@ -38,6 +38,17 @@ try {
 
 $can_sign_in = $is_monday || $is_unlocked;
 
+// AJAX Endpoint for real-time unlock checking (Kiosk auto-refresh)
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'check_unlock') {
+    header('Content-Type: application/json');
+    echo json_encode([
+        'can_sign_in' => $can_sign_in,
+        'is_unlocked' => $is_unlocked,
+        'is_monday' => $is_monday
+    ]);
+    exit;
+}
+
 // Auto-add 'status' column to the database if it doesn't exist yet (Kept for database backward compatibility)
 try {
     $colCheck = $pdo->query("SHOW COLUMNS FROM attendance_record LIKE 'status'");
@@ -396,24 +407,24 @@ try {
                 </div>
             </div>
 
-            <?php if ($is_unlocked && !$is_monday): ?>
-                <div class="alert alert-info text-center p-2 mb-3" style="font-size: 13px;">
-                    <i class="bi bi-info-circle-fill"></i> Attendance is open today because an admin unlocked this date.
-                </div>
-            <?php endif; ?>
+            <div id="unlock-alert" class="alert alert-info text-center p-2 mb-3" style="font-size: 13px; <?php echo ($is_unlocked && !$is_monday) ? '' : 'display:none;'; ?>">
+                <i class="bi bi-info-circle-fill"></i> Attendance is open today because an admin unlocked this date.
+            </div>
 
-            <?php if ($can_sign_in): ?>
-                <button type="button" onclick="confirmSignIn()" class="btn btn-primary w-100 d-block py-2 mb-4">
-                    <i class="bi bi-box-arrow-in-right me-1"></i> Submit Attendance
-                </button>
-            <?php else: ?>
+            <!-- Shown only when unlocked -->
+            <button type="button" id="btn-submit-attendance" onclick="confirmSignIn()" class="btn btn-primary w-100 py-2 mb-4" style="<?php echo $can_sign_in ? 'display:block;' : 'display:none;'; ?>">
+                <i class="bi bi-box-arrow-in-right me-1"></i> Submit Attendance
+            </button>
+
+            <!-- Shown only when locked -->
+            <div id="locked-warning-container" style="<?php echo !$can_sign_in ? 'display:block;' : 'display:none;'; ?>">
                 <div class="alert alert-warning text-center p-2 mb-3" style="font-size: 13px; background-color: #fcf8e3; border-color: #faebcc; color: #8a6d3b;">
                     <i class="bi bi-info-circle-fill"></i> Attendance is only available on Mondays unless an admin unlocks today.
                 </div>
                 <button type="button" class="btn w-100 d-block py-2 mb-4" disabled style="background-color: #e5e6e7; border-color: #e5e6e7; color: #888; cursor: not-allowed;">
                     <i class="bi bi-lock-fill me-1"></i> Sign In Locked
                 </button>
-            <?php endif; ?>
+            </div>
         </form>
 
         <hr class="my-2 text-muted" style="opacity: 0.15;">
@@ -494,6 +505,48 @@ try {
         myModal.show();
     });
     <?php endif; ?>
+
+    // ==========================================
+    // REAL-TIME UNLOCK POLLING (Every 3 seconds)
+    // ==========================================
+    let currentSignInState = <?php echo $can_sign_in ? 'true' : 'false'; ?>;
+
+    setInterval(function() {
+        $.ajax({
+            url: 'index.php',
+            type: 'POST',
+            dataType: 'json',
+            data: { action: 'check_unlock' },
+            success: function(res) {
+                if (res.can_sign_in !== currentSignInState) {
+                    currentSignInState = res.can_sign_in;
+                    
+                    // Toggle Field Statuses
+                    $('#emp_id').prop('disabled', !res.can_sign_in);
+                    $('#with_id').prop('disabled', !res.can_sign_in);
+                    $('#is_asean').prop('disabled', !res.can_sign_in);
+
+                    if (res.can_sign_in) {
+                        // Switch to Unlocked View
+                        $('#btn-submit-attendance').show().removeClass('d-none').addClass('d-block');
+                        $('#locked-warning-container').hide().removeClass('d-block').addClass('d-none');
+                        
+                        if (res.is_unlocked && !res.is_monday) {
+                            $('#unlock-alert').show();
+                        } else {
+                            $('#unlock-alert').hide();
+                        }
+                    } else {
+                        // Switch to Locked View
+                        $('#btn-submit-attendance').hide().removeClass('d-block').addClass('d-none');
+                        $('#locked-warning-container').show().removeClass('d-none').addClass('d-block');
+                        $('#unlock-alert').hide();
+                    }
+                }
+            }
+        });
+    }, 3000); 
+
 </script>
 
 </body>
