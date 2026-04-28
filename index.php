@@ -388,7 +388,7 @@ try {
                 </div>
                 <div class="toggle-row pb-0">
                     <label class="form-check-label" for="is_asean">
-                        <i class="bi bi-suit-tie me-2 text-muted fs-5 align-middle"></i> Wearing Formal Attire?
+                        <i class="bi bi-suit-tie me-2 text-muted fs-5 align-middle"></i> Wearing Properly Prescribed Attire?
                     </label>
                     <div class="form-check form-switch m-0 p-0">
                         <input class="form-check-input m-0 float-end" type="checkbox" role="switch" name="is_asean" id="is_asean" value="Yes" <?php echo !$can_sign_in ? 'disabled' : ''; ?>>
