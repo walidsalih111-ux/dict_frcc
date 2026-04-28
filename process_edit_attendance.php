@@ -17,14 +17,15 @@ $attendance_id = isset($_POST['attendance_id']) ? (int) $_POST['attendance_id'] 
 $emp_id = isset($_POST['emp_id']) ? (int) $_POST['emp_id'] : 0;
 $original_time_recorded = $_POST['original_time_recorded'] ?? '';
 $time_recorded = $_POST['time_recorded'] ?? '';
-$designation = trim($_POST['designation'] ?? '');
+// Designation input retrieval removed
 $with_id = ($_POST['with_id'] ?? 'No') === 'Yes' ? 'Yes' : 'No';
 $proper_attire = ($_POST['proper_attire'] ?? 'No') === 'Yes' ? 'Yes' : 'No';
 $is_compliant = isset($_POST['is_compliant']) && (string) $_POST['is_compliant'] === '1' ? 1 : 0;
 $date = $_POST['date'] ?? '';
 $area = $_POST['area'] ?? '';
 
-if ($attendance_id <= 0 || empty($time_recorded) || $designation === '') {
+// Designation empty check removed
+if ($attendance_id <= 0 || empty($time_recorded)) {
     $redirect = 'view_attendance.php?date=' . urlencode($date);
     if ($area !== '') {
         $redirect .= '&area=' . urlencode($area);
@@ -62,14 +63,15 @@ try {
         exit();
     }
 
+    // Designation removed from the UPDATE statement
     $sql = "UPDATE attendance_record
-            SET time_recorded = ?, designation = ?, with_id = ?, is_asean = ?, is_compliant = ?
+            SET time_recorded = ?, with_id = ?, is_asean = ?, is_compliant = ?
             WHERE attendance_id = ?";
 
     $stmt = $pdo->prepare($sql);
     $stmt->execute([
         $new_time_recorded,
-        $designation,
+        // Designation removed from execution parameters
         $with_id,
         $proper_attire,
         $is_compliant,

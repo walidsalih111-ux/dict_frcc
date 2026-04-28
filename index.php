@@ -425,7 +425,7 @@ try {
                 </a>
             </div>
             <div class="col-6">
-                <!-- Button to trigger Recent Records Modal -->
+                
                 <button type="button" class="btn btn-info-custom w-100 h-100 d-flex align-items-center justify-content-center" data-bs-toggle="modal" data-bs-target="#tableRecordsModal">
                     <i class="bi bi-table me-2"></i> View Records
                 </button>

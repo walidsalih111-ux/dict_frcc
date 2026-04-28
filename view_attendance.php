@@ -477,6 +477,7 @@ try {
                                             echo "<td class='text-center align-middle'><span class='badge bg-light text-muted border px-2 py-1 fw-normal'><i class='fa fa-eye-slash'></i> No Photo</span></td>";
                                         }
 
+                                        // Removed data-designation from the edit button
                                         echo "<td class='text-center align-middle'>
                                                 <button type='button'
                                                         class='btn btn-sm btn-outline-primary action-btn edit-attendance-btn'
@@ -486,7 +487,6 @@ try {
                                                         data-emp-id='" . htmlspecialchars($row['emp_id'], ENT_QUOTES, 'UTF-8') . "'
                                                         data-employee-name='" . htmlspecialchars($row['employee_name'] ?? '', ENT_QUOTES, 'UTF-8') . "'
                                                         data-time-recorded='" . htmlspecialchars($attendanceDateTimeValue, ENT_QUOTES, 'UTF-8') . "'
-                                                        data-designation='" . htmlspecialchars($row['designation'] ?? '', ENT_QUOTES, 'UTF-8') . "'
                                                         data-with-id='" . htmlspecialchars($row['with_id'] ?? 'No', ENT_QUOTES, 'UTF-8') . "'
                                                         data-proper-attire='" . htmlspecialchars($row['proper_attire'] ?? 'No', ENT_QUOTES, 'UTF-8') . "'
                                                         data-is-compliant='" . htmlspecialchars((string)($row['is_compliant'] ?? 0), ENT_QUOTES, 'UTF-8') . "'
@@ -568,13 +568,8 @@ try {
                     </div>
 
                     <div class="row">
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label>Designation</label>
-                                <input type="text" name="designation" id="edit_attendance_designation" class="form-control" required>
-                            </div>
-                        </div>
-                        <div class="col-md-2">
+                        <!-- Designation field has been completely removed. Dropdowns expanded to col-md-4 -->
+                        <div class="col-md-4">
                             <div class="form-group">
                                 <label>With ID</label>
                                 <select name="with_id" id="edit_attendance_with_id" class="form-control" required>
@@ -583,7 +578,7 @@ try {
                                 </select>
                             </div>
                         </div>
-                        <div class="col-md-2">
+                        <div class="col-md-4">
                             <div class="form-group">
                                 <label>Proper Attire</label>
                                 <select name="proper_attire" id="edit_attendance_proper_attire" class="form-control" required>
@@ -592,7 +587,7 @@ try {
                                 </select>
                             </div>
                         </div>
-                        <div class="col-md-2">
+                        <div class="col-md-4">
                             <div class="form-group">
                                 <label>Compliant</label>
                                 <select name="is_compliant" id="edit_attendance_is_compliant" class="form-control" required>
@@ -635,7 +630,7 @@ try {
             $('#edit_attendance_employee_name').val(button.data('employee-name'));
             $('#edit_original_time_recorded').val(button.data('time-recorded'));
             $('#edit_attendance_time_recorded').val(button.data('time-recorded'));
-            $('#edit_attendance_designation').val(button.data('designation'));
+            // Removed Designation line
             $('#edit_attendance_with_id').val(button.data('with-id'));
             $('#edit_attendance_proper_attire').val(button.data('proper-attire'));
             $('#edit_attendance_is_compliant').val(String(button.data('is-compliant')));
