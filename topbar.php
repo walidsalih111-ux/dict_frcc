@@ -18,11 +18,18 @@
                   <i class="fa fa-clipboard-check text-success me-1"></i> DICT Monday Flag Raising Attendance and Compliance Checker
               </span>
           </li>
+          <?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin'): ?>
+          <li class="nav-item me-3 d-none d-lg-block">
+              <a class="nav-link text-secondary fw-medium profile-nav-link" href="admin_account.php">
+                  <i class="fa fa-user"></i> Account
+              </a>
+          </li>
+          <?php endif; ?>
           
           <!-- Quick Log Out button for the top bar -->
           <li class="nav-item">
-              <a class="nav-link text-secondary fw-medium profile-nav-link" href="#" id="logout-btn">
-                  <i class="fa fa-sign-out-alt"></i> Log out
+              <a class="nav-link text-secondary fw-medium profile-nav-link" href="#" id="logoutBtn">
+                  <i class="fa fa-sign-out"></i> Log out
               </a>
           </li>
       </ul>
@@ -48,3 +55,30 @@
         }
     });
   </script>
+    <script>
+        // Logout confirmation (uses SweetAlert2 when available, falls back to native confirm)
+        document.addEventListener('DOMContentLoaded', function() {
+            var logout = document.getElementById('logoutBtn');
+            if (!logout) return;
+            logout.addEventListener('click', function(e) {
+                e.preventDefault();
+                var doLogout = function() { window.location.href = 'logout.php'; };
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        title: 'Are you sure?',
+                        text: 'You will be logged out of your session.',
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonColor: '#4e73df',
+                        cancelButtonColor: '#e74a3b',
+                        confirmButtonText: 'Yes, log out',
+                        cancelButtonText: 'Cancel'
+                    }).then(function(result) {
+                        if (result.isConfirmed) doLogout();
+                    });
+                } else {
+                    if (confirm('You will be logged out of your session. Continue?')) doLogout();
+                }
+            });
+        });
+    </script>

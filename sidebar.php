@@ -87,6 +87,7 @@ if (isset($_SESSION['fullname']) && !empty($_SESSION['fullname'])) {
         <a href="my_emp_attendance.php"><i class="fa fa-calendar-check-o"></i> <span class="nav-label">My Attendance</span></a>
       </li>
 
+
       <li class="<?php echo (basename($_SERVER['PHP_SELF']) == 'data_table.php') ? 'active' : ''; ?>">
         <a href="data_table.php"><i class="fa fa-table"></i> <span class="nav-label">Flag Raising Ceremony</span></a>
       </li>
@@ -98,6 +99,12 @@ if (isset($_SESSION['fullname']) && !empty($_SESSION['fullname'])) {
       <li class="<?php echo (basename($_SERVER['PHP_SELF']) == 'employee_management.php') ? 'active' : ''; ?>">
         <a href="employee_management.php"><i class="fa fa-users"></i> <span class="nav-label">Employee Management</span></a>
       </li>
+
+      <?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin'): ?>
+      <li class="<?php echo (basename($_SERVER['PHP_SELF']) == 'admin_account.php') ? 'active' : ''; ?>">
+          <a href="admin_account.php"><i class="fa fa-user"></i> <span class="nav-label">Account Settings</span></a>
+      </li>
+      <?php endif; ?>
 
       <li class="nav-about">
         <a href="#" data-toggle="modal" data-target="#aboutUsModal">

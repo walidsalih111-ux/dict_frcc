@@ -18,6 +18,7 @@ mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 $userId = (int)$_SESSION['user_id'];
 $username = isset($_POST['username']) ? trim($_POST['username']) : '';
 $emp_email = isset($_POST['emp_email']) ? trim($_POST['emp_email']) : '';
+$full = isset($_POST['full']) ? trim($_POST['full']) : '';
 $current_password = isset($_POST['current_password']) ? $_POST['current_password'] : '';
 $new_password = isset($_POST['new_password']) ? $_POST['new_password'] : '';
 $confirm_password = isset($_POST['confirm_password']) ? $_POST['confirm_password'] : '';
@@ -120,11 +121,24 @@ try {
     }
 
     // Update employee email if emp_id is available
-    if (!empty($emp_email) && !empty($db_emp_id)) {
-        $e = $conn->prepare("UPDATE employees SET emp_email = ? WHERE emp_id = ?");
-        $e->bind_param('si', $emp_email, $db_emp_id);
-        $e->execute();
-        $e->close();
+    if (!empty($db_emp_id)) {
+        if (!empty($emp_email)) {
+            $e = $conn->prepare("UPDATE employees SET emp_email = ? WHERE emp_id = ?");
+            $e->bind_param('si', $emp_email, $db_emp_id);
+            $e->execute();
+            $e->close();
+        }
+
+        // Allow updating full name for admins changing their own profile
+        if (!empty($full)) {
+            $f = $conn->prepare("UPDATE employees SET full = ? WHERE emp_id = ?");
+            $f->bind_param('si', $full, $db_emp_id);
+            $f->execute();
+            $f->close();
+
+            // Refresh session fullname if this is the current user
+            $_SESSION['fullname'] = $full;
+        }
     }
 
     $conn->commit();
@@ -132,16 +146,30 @@ try {
     // Refresh session username
     $_SESSION['username'] = $username;
 
-    header('Location: my_attendance.php?account_update=success');
+    // Redirect based on role: admin -> admin_account.php, others -> my_account.php
+    if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin') {
+        header('Location: admin_account.php?account_update=success');
+    } else {
+        header('Location: my_account.php?account_update=success');
+    }
     exit;
 
 } catch (mysqli_sql_exception $e) {
     $conn->rollback();
     if ($e->getCode() == 1062) {
-        header('Location: my_attendance.php?account_update=error&reason=' . urlencode('Username already taken'));
+        // Preserve role-based redirect for errors
+        if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin') {
+            header('Location: admin_account.php?account_update=error&reason=' . urlencode('Username already taken'));
+        } else {
+            header('Location: my_account.php?account_update=error&reason=' . urlencode('Username already taken'));
+        }
         exit;
     }
-    header('Location: my_attendance.php?account_update=error&reason=' . urlencode('Database error'));
+    if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin') {
+        header('Location: admin_account.php?account_update=error&reason=' . urlencode('Database error'));
+    } else {
+        header('Location: my_account.php?account_update=error&reason=' . urlencode('Database error'));
+    }
     exit;
 }
 
