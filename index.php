@@ -421,7 +421,7 @@ try {
         <div class="row g-2 mt-2">
             <div class="col-6">
                 <a href="login.php" class="btn btn-white w-100 h-100 d-flex align-items-center justify-content-center">
-                    <i class="bi bi-person-circle me-2"></i> Admin Login
+                    <i class="bi bi-person-circle me-2"></i>Login
                 </a>
             </div>
             <div class="col-6">
