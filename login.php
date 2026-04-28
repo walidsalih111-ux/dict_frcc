@@ -82,7 +82,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>DICT Monday Flag Raising - Login</title>
+    <title>DICT Flag Ceremony Compliance System</title>
     
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
@@ -197,7 +197,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <img src="img/logo/DICT.png" alt="DICT Logo" class="img-fluid" style="max-height: 140px; object-fit: contain;">
         </div>
         
-        <h3>DICT Monday Flag Raising</h3>
+        <h3>DICT Flag Ceremony Compliance System</h3>
         <p>Login Page</p>
 
         <!-- Live Clock -->
