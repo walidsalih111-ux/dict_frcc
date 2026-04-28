@@ -15,7 +15,7 @@
           <!-- Added d-none d-lg-block to keep the navbar responsive on mobile devices -->
           <li class="nav-item pe-4 d-none d-lg-block">
               <span class="text-muted welcome-message fw-semibold">
-                  <i class="fa fa-clipboard-check text-success me-1"></i> DICT Monday Flag Raising Attendance and Compliance Checker
+                  <i class="fa fa-clipboard-check text-success me-1"></i> DICT Flag Raising Compliance Checker
               </span>
           </li>
           <?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin'): ?>

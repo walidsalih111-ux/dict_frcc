@@ -31,11 +31,12 @@ $userProfile = $profileStmt->fetch(PDO::FETCH_ASSOC);
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>Account Settings | Admin</title>
+    <title>DICT Monday Flag Raising | Account Settings</title>
     <link rel="icon" type="image/png" href="img/logo/DICT.png">
 
     <link href="css/bootstrap.min.css" rel="stylesheet">
     <link href="font-awesome/css/font-awesome.css" rel="stylesheet">
+    <!-- Keep animate.css for other potential elements, but removed from main wrapper -->
     <link href="css/animate.css" rel="stylesheet">
     <link href="css/style.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.32/dist/sweetalert2.min.css" rel="stylesheet">
@@ -43,7 +44,14 @@ $userProfile = $profileStmt->fetch(PDO::FETCH_ASSOC);
     <style>
         /* Keep the same visual styles as my_account.php for parity */
         body { font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif; margin: 0; padding-bottom: 40px; }
-        #page-wrapper { margin-left: 220px !important; transition: all 0.3s ease; min-height: 100vh; }
+        #page-wrapper { transition: all 0.3s ease; min-height: 100vh; }
+        @media (min-width: 769px) {
+            body:not(.mini-navbar) #page-wrapper { margin-left: 220px !important; }
+            body.mini-navbar #page-wrapper { margin-left: 70px !important; }
+        }
+        @media (max-width: 768px) {
+            #page-wrapper { margin-left: 0 !important; }
+        }
         body.gray-bg, #page-wrapper, .wrapper.wrapper-content { background-color: #4e73df !important; }
         .ibox { border-radius: 15px !important; box-shadow: 0 10px 30px rgba(0,0,0,0.2) !important; background: rgba(255,255,255,0.98) !important; border: none !important; margin-top: 10px; margin-bottom: 25px; overflow: hidden; }
         .ibox-title { background: transparent !important; border-bottom: 1px solid rgba(0,0,0,0.05) !important; border-radius: 15px 15px 0 0 !important; padding: 20px 25px !important; }
@@ -64,7 +72,7 @@ $userProfile = $profileStmt->fetch(PDO::FETCH_ASSOC);
         <?php include 'sidebar.php'; ?>
         <?php include 'topbar.php'; ?>
 
-        <div class="wrapper wrapper-content animated fadeInRight mt-3">
+        <div class="wrapper wrapper-content mt-3">
             <div class="row justify-content-center">
                 <div class="col-lg-12 px-xl-4">
 
@@ -183,12 +191,38 @@ $userProfile = $profileStmt->fetch(PDO::FETCH_ASSOC);
             </div>
         </div>
 
-    </div>
+        </div> <!-- Closes #page-wrapper from topbar.php -->
+    </div> <!-- Closes #wrapper -->
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.32/dist/sweetalert2.all.min.js"></script>
 
     <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // 1. Sidebar toggle logic (Replaces missing inspinia.js toggle functionality on this page)
+            const toggleBtn = document.querySelector('.navbar-minimalize');
+            if (toggleBtn) {
+                toggleBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    document.body.classList.toggle('mini-navbar');
+                });
+            }
+
+            // 2. About Us Modal Trigger Logic (Bridges Bootstrap 4 data-toggle to Bootstrap 5 script)
+            const aboutLink = document.querySelector('a[data-target="#aboutUsModal"]');
+            if (aboutLink) {
+                aboutLink.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    var aboutModalEl = document.getElementById('aboutUsModal');
+                    if (aboutModalEl) {
+                        var aboutModal = new bootstrap.Modal(aboutModalEl);
+                        aboutModal.show();
+                    }
+                });
+            }
+        });
+
+        // Validation Variables and Listeners
         var isUsernameValid = true;
         var isPasswordValid = true;
         const usernameInput = document.getElementById('acc_username');
